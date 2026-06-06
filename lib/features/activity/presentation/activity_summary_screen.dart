@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:confetti/confetti.dart';
 import 'package:turf/features/activity/domain/models/activity_session.dart';
 import 'package:turf/core/utils/polyline_codec.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class ActivitySummaryScreen extends StatefulWidget {
   final ActivitySession session;
@@ -77,8 +78,20 @@ class _ActivitySummaryScreenState extends State<ActivitySummaryScreen> {
                           ),
                           children: [
                             TileLayer(
-                              urlTemplate: 'https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}.png',
+                              urlTemplate: 'https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png?api_key={api_key}',
+                              additionalOptions: const {
+                                'api_key': 'aba107a2-3f38-4e4a-8d0a-135e6ff7c2f7',
+                              },
+                              maxZoom: 20,
+                              maxNativeZoom: 20,
                               userAgentPackageName: 'com.turf.app',
+                            ),
+                            RichAttributionWidget(
+                              attributions: [
+                                TextSourceAttribution('Stadia Maps', onTap: () => launchUrl(Uri.parse('https://stadiamaps.com/')), prependCopyright: true),
+                                TextSourceAttribution('OpenMapTiles', onTap: () => launchUrl(Uri.parse('https://openmaptiles.org/')), prependCopyright: true),
+                                TextSourceAttribution('OpenStreetMap', onTap: () => launchUrl(Uri.parse('https://www.openstreetmap.org/copyright')), prependCopyright: true),
+                              ],
                             ),
                             PolylineLayer(
                               polylines: [

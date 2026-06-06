@@ -68,7 +68,7 @@ class BackgroundTrackingService {
       "1",
       "location_update_task",
       frequency: const Duration(minutes: 15),
-      existingWorkPolicy: ExistingWorkPolicy.replace,
+      existingWorkPolicy: ExistingPeriodicWorkPolicy.replace,
     );
     
     // Show immediate notification

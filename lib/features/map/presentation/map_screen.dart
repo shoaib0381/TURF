@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,7 +7,9 @@ import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:confetti/confetti.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import 'package:turf/core/services/geocoding_service.dart';
 import 'package:turf/features/map/domain/models/territory.dart';
 import 'package:turf/features/map/presentation/providers/location_provider.dart';
 import 'package:turf/features/map/presentation/providers/territories_provider.dart';
@@ -27,6 +30,11 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   late ConfettiController _confettiController;
   bool _isMapCentered = false;
 
+  // Search marker state
+  LatLng? _searchMarkerLocation;
+  String? _searchMarkerLabel;
+  Timer? _searchMarkerTimer;
+
   @override
   void initState() {
     super.initState();
@@ -37,11 +45,34 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   void dispose() {
     _confettiController.dispose();
     _mapController.dispose();
+    _searchMarkerTimer?.cancel();
     super.dispose();
   }
 
   void _onMapPositionChanged(MapCamera camera, bool hasGesture) {
     ref.read(mapBoundsProvider.notifier).updateBounds(camera.visibleBounds);
+  }
+
+  void _onSearchLocationSelected(LatLng coordinates, String label) {
+    // Animate to the selected location
+    _mapController.move(coordinates, 16.0);
+
+    // Show temporary green marker
+    setState(() {
+      _searchMarkerLocation = coordinates;
+      _searchMarkerLabel = label;
+    });
+
+    // Remove marker after 8 seconds
+    _searchMarkerTimer?.cancel();
+    _searchMarkerTimer = Timer(const Duration(seconds: 8), () {
+      if (mounted) {
+        setState(() {
+          _searchMarkerLocation = null;
+          _searchMarkerLabel = null;
+        });
+      }
+    });
   }
 
   void _showTerritoryInfo(Territory territory, Position? userPos) {
@@ -73,6 +104,10 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                   territory.xpValue,
                 );
             _confettiController.play();
+
+            // Reverse geocode to auto-name if territory has no meaningful name
+            _autoNameTerritory(territory);
+
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
@@ -96,11 +131,34 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     );
   }
 
+  /// Auto-name a territory using reverse geocoding if it has a generic name
+  Future<void> _autoNameTerritory(Territory territory) async {
+    // Only auto-name if territory name looks auto-generated or empty
+    final name = territory.name.toLowerCase();
+    if (name.startsWith('territory') || name.isEmpty || name.startsWith('unnamed')) {
+      try {
+        final geocodingService = GeocodingService();
+        final result = await geocodingService.reverseGeocode(
+          lat: territory.center.latitude,
+          lng: territory.center.longitude,
+        );
+        if (result != null) {
+          final newName = result.territoryName;
+          await Supabase.instance.client
+              .from('territories')
+              .update({'name': newName})
+              .eq('id', territory.id);
+        }
+      } catch (_) {
+        // Silently fail — name is optional enhancement
+      }
+    }
+  }
+
   Color _getTerritoryColor(Territory territory) {
     final currentUserId = Supabase.instance.client.auth.currentUser?.id;
     if (territory.ownerId == null) return Colors.white;
     if (territory.ownerId == currentUserId) return const Color(0xFF00E676);
-    // Assume blue for friends (requires friendship check in real app), red for others
     return const Color(0xFFFF453A); 
   }
 
@@ -134,8 +192,20 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             ),
             children: [
               TileLayer(
-                urlTemplate: 'https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}.png',
+                urlTemplate: 'https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png?api_key={api_key}',
+                additionalOptions: const {
+                  'api_key': 'aba107a2-3f38-4e4a-8d0a-135e6ff7c2f7',
+                },
+                maxZoom: 20,
+                maxNativeZoom: 20,
                 userAgentPackageName: 'com.turf.app',
+              ),
+              RichAttributionWidget(
+                attributions: [
+                  TextSourceAttribution('Stadia Maps', onTap: () => launchUrl(Uri.parse('https://stadiamaps.com/')), prependCopyright: true),
+                  TextSourceAttribution('OpenMapTiles', onTap: () => launchUrl(Uri.parse('https://openmaptiles.org/')), prependCopyright: true),
+                  TextSourceAttribution('OpenStreetMap', onTap: () => launchUrl(Uri.parse('https://www.openstreetmap.org/copyright')), prependCopyright: true),
+                ],
               ),
               
               // Territories Circles
@@ -183,6 +253,45 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                     ),
                   ],
                 ),
+
+              // Temporary Search Result Marker
+              if (_searchMarkerLocation != null)
+                MarkerLayer(
+                  markers: [
+                    Marker(
+                      point: _searchMarkerLocation!,
+                      width: 80,
+                      height: 80,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF00E676),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              _searchMarkerLabel ?? '',
+                              style: const TextStyle(
+                                color: Colors.black,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const Icon(
+                            Icons.location_on,
+                            color: Color(0xFF00E676),
+                            size: 36,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
             ],
           ),
           
@@ -197,12 +306,14 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             ),
           ),
 
-          // Floating UI
-          const Positioned(
+          // Floating UI — Search Bar
+          Positioned(
             top: 0,
             left: 0,
             right: 0,
-            child: FloatingTopBar(),
+            child: FloatingTopBar(
+              onLocationSelected: _onSearchLocationSelected,
+            ),
           ),
           const Positioned(
             bottom: 0,
