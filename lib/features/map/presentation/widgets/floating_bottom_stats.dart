@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:turf/features/activity/presentation/widgets/activity_type_picker.dart' as turf_picker;
 
 class FloatingBottomStats extends StatelessWidget {
   const FloatingBottomStats({super.key});
@@ -34,8 +35,11 @@ class FloatingBottomStats extends StatelessWidget {
                   // Activity Start Button
                   GestureDetector(
                     onTap: () {
-                      // Redirects to activity picker in next phases
-                      // context.push('/activity');
+                      showModalBottomSheet(
+                        context: context,
+                        backgroundColor: Colors.transparent,
+                        builder: (context) => const turf_picker.ActivityTypePicker(),
+                      );
                     },
                     child: Container(
                       width: 48,

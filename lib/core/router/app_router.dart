@@ -18,6 +18,9 @@ import 'package:turf/features/challenges/presentation/challenge_detail_screen.da
 import 'package:turf/features/friends/presentation/friends_screen.dart';
 import 'package:turf/features/goals/presentation/goals_screen.dart';
 import 'package:turf/features/notifications/presentation/notifications_screen.dart';
+import 'package:turf/features/activity/presentation/countdown_screen.dart' as turf_countdown;
+import 'package:turf/features/activity/presentation/activity_summary_screen.dart' as turf_summary;
+import 'package:turf/features/activity/domain/models/activity_session.dart' as turf_models;
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
 final GlobalKey<NavigatorState> _shellNavigatorKey = GlobalKey<NavigatorState>();
@@ -104,7 +107,19 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/settings',
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => const SettingsScreen(),
+      builder: (context, state) => const SettingsScreen(),),
+    GoRoute(
+      path: '/activity/countdown',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const turf_countdown.CountdownScreen(),
+    ),
+    GoRoute(
+      path: '/activity/summary',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) {
+        final session = state.extra as turf_models.ActivitySession;
+        return turf_summary.ActivitySummaryScreen(session: session);
+      },
     ),
   ],
   redirect: (context, state) async {
