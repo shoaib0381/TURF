@@ -1,0 +1,899 @@
+# TURF App — Phase-Wise AI Prompt Documentation
+## For: Antigravity (Flutter) + Supabae (Supabase Backend)
+---
+
+> **Rules for all phases:**
+> - Supabase connection URL: `https://lcrfzwxkrkiuvfhkgfju.supabase.co`
+> - Supabase Anon Key: `sb_publishable_hLE459WDGvetlxZvwMhyGQ_OkwjBtGm`
+> - Package: `supabase_flutter` (already added)
+> - No demo/mock data. All data is 100% real-time Supabase.
+> - Do NOT rename any Supabase table, column, or field name once created.
+> - App name: **TURF**
+> - UI priority: Premium, dark-mode-first, modern athletic aesthetic. Think Nike + Strava + a game.
+> - App weight priority: Lazy loading, cached assets, minimal rebuilds, efficient streams.
+> - Terms & Conditions: https://www.termsfeed.com/live/340e81fc-0ff8-43cf-ae39-4a335d13462a
+
+---
+
+# PHASE 1 — Supabase Backend: Database Schema & Auth Setup
+**→ Send this to: Supabae AI Agent**
+
+---
+
+```
+You are my Supabase backend agent. Set up the complete database schema for a Flutter fitness app called TURF. This app lets users run, walk, cycle, capture territories on a live map, compete with friends, earn rewards, join challenges, track fitness goals, and climb leaderboards.
+
+Use Supabase Auth for authentication. Enable Google OAuth as an optional login method alongside email/password. Enable Row Level Security (RLS) on all tables.
+
+Do NOT change any table name, column name, or structure after creation. These names will be referenced in the Flutter app permanently.
+
+Create the following tables exactly:
+
+---
+
+TABLE: profiles
+- id: uuid (primary key, references auth.users.id)
+- username: text (unique, not null)
+- full_name: text
+- avatar_url: text
+- bio: text
+- total_distance_km: float8 (default 0)
+- total_xp: int8 (default 0)
+- level: int4 (default 1)
+- streak_days: int4 (default 0)
+- last_active_date: date
+- created_at: timestamptz (default now())
+- updated_at: timestamptz (default now())
+
+TABLE: activity_sessions
+- id: uuid (primary key, default gen_random_uuid())
+- user_id: uuid (references profiles.id)
+- activity_type: text (check: 'run', 'walk', 'cycle')
+- started_at: timestamptz
+- ended_at: timestamptz
+- duration_seconds: int4
+- distance_km: float8
+- avg_speed_kmh: float8
+- max_speed_kmh: float8
+- calories_burned: int4
+- elevation_gain_m: float8
+- route_polyline: text (encoded polyline string)
+- xp_earned: int4 (default 0)
+- created_at: timestamptz (default now())
+
+TABLE: location_pings
+- id: uuid (primary key, default gen_random_uuid())
+- session_id: uuid (references activity_sessions.id)
+- user_id: uuid (references profiles.id)
+- latitude: float8
+- longitude: float8
+- altitude: float8
+- speed_ms: float8
+- heading: float8
+- recorded_at: timestamptz (default now())
+
+TABLE: territories
+- id: uuid (primary key, default gen_random_uuid())
+- name: text
+- center_lat: float8
+- center_lng: float8
+- radius_meters: float4 (default 200)
+- owner_id: uuid (references profiles.id, nullable)
+- captured_at: timestamptz
+- capture_count: int4 (default 0)
+- xp_value: int4 (default 50)
+- territory_type: text (check: 'zone', 'landmark', 'street')
+- created_at: timestamptz (default now())
+
+TABLE: territory_captures
+- id: uuid (primary key, default gen_random_uuid())
+- territory_id: uuid (references territories.id)
+- user_id: uuid (references profiles.id)
+- session_id: uuid (references activity_sessions.id)
+- captured_at: timestamptz (default now())
+- xp_earned: int4
+
+TABLE: friendships
+- id: uuid (primary key, default gen_random_uuid())
+- requester_id: uuid (references profiles.id)
+- addressee_id: uuid (references profiles.id)
+- status: text (check: 'pending', 'accepted', 'blocked')
+- created_at: timestamptz (default now())
+- updated_at: timestamptz (default now())
+
+TABLE: challenges
+- id: uuid (primary key, default gen_random_uuid())
+- created_by: uuid (references profiles.id)
+- title: text (not null)
+- description: text
+- challenge_type: text (check: 'distance', 'territory', 'streak', 'speed', 'elevation')
+- target_value: float8
+- activity_type: text (check: 'run', 'walk', 'cycle', 'any')
+- starts_at: timestamptz
+- ends_at: timestamptz
+- is_public: boolean (default true)
+- xp_reward: int4 (default 100)
+- badge_id: uuid (nullable)
+- created_at: timestamptz (default now())
+
+TABLE: challenge_participants
+- id: uuid (primary key, default gen_random_uuid())
+- challenge_id: uuid (references challenges.id)
+- user_id: uuid (references profiles.id)
+- joined_at: timestamptz (default now())
+- current_value: float8 (default 0)
+- completed: boolean (default false)
+- completed_at: timestamptz (nullable)
+
+TABLE: leaderboard_entries
+- id: uuid (primary key, default gen_random_uuid())
+- user_id: uuid (references profiles.id)
+- leaderboard_type: text (check: 'weekly_distance', 'monthly_distance', 'territory_count', 'total_xp', 'streak')
+- value: float8
+- rank: int4
+- period_start: date
+- period_end: date
+- updated_at: timestamptz (default now())
+
+TABLE: badges
+- id: uuid (primary key, default gen_random_uuid())
+- name: text (not null)
+- description: text
+- icon_url: text
+- badge_type: text (check: 'milestone', 'challenge', 'streak', 'territory', 'speed', 'special')
+- required_value: float8
+- xp_bonus: int4 (default 0)
+- created_at: timestamptz (default now())
+
+TABLE: user_badges
+- id: uuid (primary key, default gen_random_uuid())
+- user_id: uuid (references profiles.id)
+- badge_id: uuid (references badges.id)
+- earned_at: timestamptz (default now())
+- session_id: uuid (nullable, references activity_sessions.id)
+
+TABLE: fitness_goals
+- id: uuid (primary key, default gen_random_uuid())
+- user_id: uuid (references profiles.id)
+- goal_type: text (check: 'weekly_distance', 'monthly_distance', 'weekly_sessions', 'weight_loss', 'streak')
+- target_value: float8
+- current_value: float8 (default 0)
+- unit: text
+- starts_at: date
+- ends_at: date
+- completed: boolean (default false)
+- created_at: timestamptz (default now())
+
+TABLE: notifications
+- id: uuid (primary key, default gen_random_uuid())
+- user_id: uuid (references profiles.id)
+- type: text (check: 'friend_request', 'territory_stolen', 'challenge_invite', 'badge_earned', 'goal_completed', 'leaderboard_rank')
+- title: text
+- body: text
+- is_read: boolean (default false)
+- metadata: jsonb
+- created_at: timestamptz (default now())
+
+---
+
+After creating tables:
+
+1. Enable RLS on all tables.
+2. Add RLS policies:
+   - profiles: users can read all profiles, but only update their own.
+   - activity_sessions: users can read/insert/update only their own sessions.
+   - location_pings: users can insert their own pings; read is restricted to own records.
+   - territories: all authenticated users can read; only session owner can insert capture.
+   - territory_captures: authenticated users can insert; all can read.
+   - friendships: users can read/insert/update records where they are requester or addressee.
+   - challenges: all authenticated can read public challenges; creator can update.
+   - challenge_participants: users can insert/read their own participation.
+   - leaderboard_entries: all authenticated users can read; system/trigger updates.
+   - badges: all authenticated users can read.
+   - user_badges: all authenticated users can read; system inserts.
+   - fitness_goals: users can CRUD only their own goals.
+   - notifications: users can read/update only their own notifications.
+
+3. Enable Realtime on these tables: location_pings, territories, territory_captures, notifications, leaderboard_entries, challenge_participants.
+
+4. Create a Postgres function + trigger: when a new row is inserted into auth.users, automatically insert a corresponding row into profiles with default values.
+
+5. Create a Postgres function: calculate_user_level(xp int8) returns int4 — returns level based on XP thresholds (level 1 = 0 XP, level 2 = 500, level 3 = 1200, level 4 = 2500, level 5 = 5000, and so on doubling roughly).
+
+6. Create a Postgres function: award_xp(p_user_id uuid, p_xp int4) — adds XP to profiles.total_xp and recalculates level using calculate_user_level.
+
+7. Create a Postgres function: update_leaderboard() — to be called via cron or trigger to recalculate weekly/monthly leaderboard_entries from activity_sessions.
+
+8. Enable Google OAuth in Supabase Auth dashboard. Set redirect URL to: com.turf.app://login-callback
+
+9. Set up Supabase Storage bucket named: avatars — public read, authenticated write.
+   Second bucket: activity_media — private, user-scoped.
+
+10. Create seed data only for: badges table (insert 20 achievement badges covering milestones like first run, 5km, 10km, 50km, 100km, 7-day streak, 30-day streak, first territory, 10 territories, speed badges, elevation badges, challenge winner, etc.).
+```
+
+---
+
+# PHASE 2 — Flutter: Project Setup, Theme & Navigation Shell
+**→ Send this to: Antigravity (Flutter AI)**
+
+---
+
+```
+You are building a Flutter app called TURF — a premium fitness and territory capture app. UI is the #1 priority. Think Nike Run Club meets a strategy game. Dark-mode-first. Athletic. Clean. Modern.
+
+Supabase is already initialized:
+- URL: https://lcrfzwxkrkiuvfhkgfju.supabase.co
+- AnonKey: sb_publishable_hLE459WDGvetlxZvwMhyGQ_OkwjBtGm
+- Package: supabase_flutter (already added)
+
+Add these packages to pubspec.yaml (do not remove supabase_flutter):
+- go_router (navigation)
+- flutter_riverpod (state management)
+- riverpod_annotation
+- google_fonts
+- cached_network_image
+- flutter_svg
+- lottie
+- fl_chart
+- geolocator
+- permission_handler
+- flutter_map (for OpenStreetMap — free, no API key needed)
+- latlong2
+- google_sign_in
+- shared_preferences
+- intl
+- shimmer
+- confetti
+- flutter_local_notifications
+- workmanager (background tasks)
+
+App architecture: feature-first folder structure.
+lib/
+  core/
+    theme/
+    router/
+    constants/
+    utils/
+    providers/
+  features/
+    auth/
+    home/
+    map/
+    activity/
+    leaderboard/
+    challenges/
+    profile/
+    friends/
+    notifications/
+    goals/
+
+---
+
+THEME SETUP — create lib/core/theme/app_theme.dart:
+
+Primary color: #00E676 (electric green — energy, movement)
+Background dark: #0A0A0A (near black)
+Surface dark: #141414
+Card dark: #1C1C1E
+Secondary surface: #242424
+Text primary: #FFFFFF
+Text secondary: #8E8E93
+Text tertiary: #48484A
+Accent: #00E676
+Danger: #FF453A
+Warning: #FFD60A
+Info: #0A84FF
+
+Font: Use Google Fonts — "Inter" for body/UI, "Space Grotesk" for display numbers and stats.
+
+Use ThemeData with:
+- Scaffold background: #0A0A0A
+- AppBar: transparent, no elevation
+- BottomNavigationBar: #141414 background, green selected icon
+- Card: #1C1C1E with 12px border radius
+- All buttons: rounded pill shape (50px border radius), green fill
+- Input fields: #1C1C1E fill, no border, 12px radius, white hint text
+- All transitions: use custom slide/fade page transitions
+- ripple: subtle, green-tinted
+
+---
+
+NAVIGATION — create lib/core/router/app_router.dart using go_router:
+
+Routes:
+- /splash → SplashScreen
+- /onboarding → OnboardingScreen
+- /auth → AuthScreen (login/signup tabs)
+- /home → HomeScreen (bottom nav shell)
+  - /home/map → MapScreen
+  - /home/activity → ActivityFeedScreen
+  - /home/leaderboard → LeaderboardScreen
+  - /home/profile → ProfileScreen
+- /activity/live → LiveActivityScreen (full screen, no bottom nav)
+- /activity/:id → ActivityDetailScreen
+- /challenge/:id → ChallengeDetailScreen
+- /profile/:userId → PublicProfileScreen
+- /friends → FriendsScreen
+- /goals → GoalsScreen
+- /notifications → NotificationsScreen
+- /settings → SettingsScreen
+
+Auth guard: if Supabase session is null → redirect to /auth. If session exists and no profile → redirect to profile setup.
+
+---
+
+BOTTOM NAVIGATION — 5 tabs:
+1. Map icon → /home/map
+2. Activity (lightning bolt icon) → /home/activity
+3. Center: Big circular green START button (for starting a run/walk/cycle)
+4. Leaderboard (trophy icon) → /home/leaderboard
+5. Profile (person icon) → /home/profile
+
+The center START button should be elevated above the nav bar, 64px circle, electric green, with a subtle pulse animation when idle.
+
+---
+
+SPLASH SCREEN:
+- Black background
+- TURF logo centered (large bold "TURF" in Space Grotesk, white)
+- Green underline accent animates in
+- Check Supabase session → route accordingly after 2 seconds
+- No loading spinner — use Lottie animation of a running figure (use a free Lottie JSON from assets)
+
+---
+
+ONBOARDING (3 slides, swipeable):
+Slide 1: Animated map with green zones lighting up → "Claim Your Territory"
+Slide 2: Leaderboard animation → "Compete. Dominate. Rise."
+Slide 3: Trophy/badge animation → "Earn Rewards Every Step"
+Skip button top right. Get Started button on last slide → /auth
+Dots indicator at bottom.
+All backgrounds: #0A0A0A. Text: white + green accents.
+
+All onboarding screens use Lottie animations (store JSON files in assets/lottie/).
+
+---
+
+AUTH SCREEN — lib/features/auth/:
+Two tabs: Sign In / Sign Up
+
+Sign In:
+- Email + Password fields
+- "Sign in" pill button (green)
+- Divider "or"
+- Google Sign-In button (white pill, Google logo SVG, dark text)
+- Forgot password link
+
+Sign Up:
+- Full Name, Email, Password, Confirm Password
+- Terms checkbox: "I agree to the Terms & Conditions" — link opens: https://www.termsfeed.com/live/340e81fc-0ff8-43cf-ae39-4a335d13462a
+- Sign Up button
+- Google Sign-In button
+- Do NOT allow sign up without accepting terms
+
+Google Sign-In: use google_sign_in package. On success, upsert profile in Supabase profiles table.
+
+After successful auth → if profiles row exists → /home/map. If not → show a quick profile setup screen (username + avatar selection).
+
+Profile setup:
+- Avatar: show 8 preset avatar options (colored circle with initials style) OR upload from gallery
+- Username field (check uniqueness in real-time against profiles table)
+- "Let's Go" button → insert profiles row → navigate to /home/map
+
+All error states: red snackbar at bottom. All success: green snackbar.
+Show shimmer loading on all async operations.
+```
+
+---
+
+# PHASE 3 — Flutter: Live Map & Territory System
+**→ Send this to: Antigravity (Flutter AI)**
+
+---
+
+```
+Build the core map screen for TURF app. This is the most important screen — it must be beautiful, fast, and fully real-time.
+
+Use flutter_map with OpenStreetMap tiles (free). DO NOT use Google Maps (requires billing).
+
+Map tile URL: https://tile.openstreetmap.org/{z}/{x}/{y}.png
+
+---
+
+MAP SCREEN — lib/features/map/map_screen.dart:
+
+Visual style:
+- Use a dark map tile style. Use this free dark tile: https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}.png
+  (Stadia Maps free tier — no API key needed for basic use)
+- Map fills full screen (no AppBar, safe area insets only)
+- Floating UI elements over the map (not in a scaffold)
+
+Map elements:
+1. User location: animated green pulsing dot (custom marker). Show accuracy circle around it.
+2. Territories: shown as colored circles on the map.
+   - Owned by current user: electric green (#00E676), 60% opacity fill
+   - Owned by friend: blue (#0A84FF), 50% opacity fill
+   - Owned by others: red (#FF453A), 40% opacity fill
+   - Uncaptured: white, 20% opacity fill, dashed border
+3. Territory markers: small icon in center of each circle showing owner's avatar (use CachedNetworkImage, fallback to colored initial circle)
+4. When user enters a territory radius (200m): territory circle pulses and a bottom sheet slides up showing capture option
+
+Realtime: Subscribe to Supabase Realtime on territories table. When any territory ownership changes, update the map immediately without full refresh. Use flutter_map's MarkerLayer and CircleLayer — rebuild only changed markers.
+
+Territory capture flow:
+- User must be within 200 meters of territory center (use Geolocator.distanceBetween)
+- If uncaptured or owned by someone else: show bottom sheet "Capture [Territory Name]" with XP value
+- Capture button: insert into territory_captures table, update territories.owner_id to current user
+- Show confetti animation (confetti package) + XP earned toast when captured
+- Territory circle immediately changes to green on the map
+
+Floating UI over map (bottom):
+- Glass morphism card (dark, 80% opacity, blur effect) showing:
+  - User's current XP today | Territories owned | km today
+  - Small green activity start button (redirects to activity type picker)
+
+Floating UI over map (top):
+- Search bar: "Search territories..." (just UI for now, functional in later phase)
+- Filter pill buttons: "All" | "Mine" | "Friends" | "Uncaptured"
+
+Territory info bottom sheet (on territory tap):
+- Territory name
+- Owner avatar + name (or "Unclaimed" if no owner)
+- Capture count history
+- XP value
+- "Capture" button (green) or "Your Territory" label
+- Recent capturers list (last 5 users from territory_captures)
+
+Load territories from Supabase on map init. Paginate by viewport bounds — only load territories visible in current map region (use map bounds to filter by lat/lng range in Supabase query).
+
+Use shared_preferences to cache last known user location so map opens instantly on the correct location before GPS locks.
+```
+
+---
+
+# PHASE 4 — Flutter: Live Activity Tracking (Run/Walk/Cycle)
+**→ Send this to: Antigravity (Flutter AI)**
+
+---
+
+```
+Build the live activity tracking system for TURF. This is the real-time GPS tracking screen. It must feel like a sports watch on a phone.
+
+---
+
+ACTIVITY TYPE PICKER (modal bottom sheet):
+3 large tappable cards in a row:
+- Run (shoe icon, green)
+- Walk (person walking icon, blue)
+- Cycle (bike icon, orange)
+Each shows average calorie burn info. Tap → start countdown.
+
+3-2-1 countdown screen before activity starts (full screen, large numbers, black bg, green color).
+
+---
+
+LIVE ACTIVITY SCREEN — lib/features/activity/live_activity_screen.dart:
+Full screen. No bottom nav. Status bar hidden.
+
+Top section (40% of screen): Live flutter_map showing:
+- User's real-time GPS position (updates every second)
+- Drawn route polyline in electric green as user moves
+- Map auto-follows user position
+- Any territories within 500m shown as semi-transparent circles
+
+Bottom section (60% of screen): Stats panel (#141414 background):
+Row 1 (large): Current distance in km (Space Grotesk, 48px, white)
+Row 2: Duration timer (counting up) | Current pace (min/km)
+Row 3: Current speed (km/h) | Calories burned (estimated)
+Row 4: Elevation gain
+
+GPS tracking:
+- Use geolocator with LocationSettings: accuracy: LocationAccuracy.high, distanceFilter: 5 (meters)
+- Every GPS update: draw new point on polyline, recalculate distance (Haversine formula), update all stats
+- Every 10 seconds: insert a location_ping into Supabase (batch — don't insert every single GPS point to reduce Supabase writes)
+- Calculate calories: (MET value × weight_kg × duration_hours). Use MET: run=9.8, walk=3.5, cycle=7.5. Default weight 70kg if user hasn't set it.
+
+Territory detection during activity:
+- Every 15 seconds: check if user is within 200m of any uncaptured or rival territory
+- If yes: vibrate device + show a green banner "Territory nearby! Tap to capture" 
+- Banner tap → trigger capture flow without leaving activity screen
+
+Controls at bottom:
+- Pause button (large, white circle)
+- When paused: Resume button + Stop button
+- Stop → show confirmation dialog → save session
+
+On activity end:
+- Calculate encoded polyline from all GPS points (use your own simple encoding or store as JSON array)
+- Insert complete row into activity_sessions table
+- Award XP: base 10 XP per km + bonus for pace + bonus for territories captured
+- Call Supabase function award_xp(user_id, xp_earned)
+- Navigate to Activity Summary screen
+
+---
+
+ACTIVITY SUMMARY SCREEN:
+Full-screen result card showing:
+- Activity type icon + duration
+- Large distance number
+- Stats grid: pace, speed, calories, elevation
+- Route map (static flutter_map, non-interactive, showing the route polyline)
+- XP earned (big green number with confetti animation)
+- Badges earned this session (horizontal scroll)
+- Share button (screenshot the summary card and share)
+- "Done" button → back to home map
+
+Background task: use workmanager to keep location tracking alive when app is backgrounded. Show persistent notification during active session: "TURF — Tracking your run | 3.2 km | 18:42"
+```
+
+---
+
+# PHASE 5 — Flutter: Activity Feed & Social
+**→ Send this to: Antigravity (Flutter AI)**
+
+---
+
+```
+Build the Activity Feed screen and social features for TURF.
+
+---
+
+ACTIVITY FEED — lib/features/activity/activity_feed_screen.dart:
+Two tabs at top: "Friends" | "My Activities"
+
+Feed card design for each activity:
+- User avatar (circle, CachedNetworkImage) + name + time ago
+- Activity type badge (Run/Walk/Cycle pill, colored)
+- Large stat: distance km (Space Grotesk bold)
+- Secondary stats: duration | pace | calories (small row)
+- Route map thumbnail (static flutter_map, small, showing polyline)
+- XP earned badge (green pill, top right)
+- Territories captured count (if any)
+- Like button (heart, shows count) — store in activity_sessions metadata jsonb field
+- Comment count button → opens comment sheet
+
+Load: query activity_sessions joined with profiles. For Friends tab: filter by user IDs from friendships table (accepted status). Order by created_at desc. Paginate with Supabase range (limit 20, offset).
+
+Use shimmer loading while fetching.
+Infinite scroll: load next 20 when user scrolls to bottom.
+
+Realtime: subscribe to activity_sessions for new inserts from friends. Show "New activity" banner at top when a friend completes a run.
+
+---
+
+FRIENDS SYSTEM — lib/features/friends/friends_screen.dart:
+Tabs: "Friends" | "Requests" | "Find People"
+
+Friends list: show avatar, name, total_distance_km, level badge, last active (X days ago)
+Each friend card: tap → PublicProfileScreen
+
+Friend requests tab: incoming requests with Accept/Decline buttons.
+On accept: update friendships.status to 'accepted'
+
+Find People: search input → query profiles table by username (ilike search). Show results. Add friend button → insert into friendships with status 'pending'. Show "Pending" state after sending.
+
+On the public profile screen: show user's stats, recent activities, badges, territories owned count. "Add Friend" or "Friends" button.
+
+---
+
+NOTIFICATIONS — lib/features/notifications/notifications_screen.dart:
+Subscribe to Supabase Realtime on notifications table filtered by user_id.
+Show badge count on bottom nav profile icon when unread notifications > 0.
+
+Notification types and their display:
+- friend_request: "[Name] sent you a friend request" → tap → Friends screen
+- territory_stolen: "[Name] captured your territory [Territory Name]!" → tap → Map centered on territory
+- challenge_invite: "You've been invited to [Challenge]" → tap → Challenge detail
+- badge_earned: "You earned [Badge Name]!" → tap → Profile badges
+- goal_completed: "Goal complete! [Goal Name]" → tap → Goals screen
+- leaderboard_rank: "You're now #[X] on the weekly leaderboard!" → tap → Leaderboard
+
+Mark as read: update notifications.is_read = true when user taps notification or opens notifications screen.
+Use flutter_local_notifications to show push-style local notifications when app is in background and Supabase sends a realtime event.
+```
+
+---
+
+# PHASE 6 — Flutter: Leaderboard & Challenges
+**→ Send this to: Antigravity (Flutter AI)**
+
+---
+
+```
+Build the Leaderboard and Challenges system for TURF.
+
+---
+
+LEADERBOARD — lib/features/leaderboard/leaderboard_screen.dart:
+
+Top filter tabs (horizontal scroll):
+Weekly Distance | Monthly Distance | Territory Count | Total XP | Streak
+
+For each leaderboard type: query leaderboard_entries joined with profiles, ordered by value desc. Show top 100.
+
+Leaderboard list item design:
+- Rank number (#1, #2, #3 with gold/silver/bronze styling)
+- User avatar + name + level badge
+- Value (distance in km, or count, or XP) — right aligned, Space Grotesk bold
+- If current user is in the list: highlight their row with a green left border
+
+Top 3 podium design at top of screen (before the list):
+- 3 card-style boxes, center one (#1) is taller
+- Show avatar, name, value for positions 1-2-3
+- Gold/silver/bronze color accents
+
+Friends tab within leaderboard: same UI but only show friends. Filter leaderboard_entries by friend user IDs.
+
+Real-time: subscribe to leaderboard_entries table. When a value changes, smoothly animate the position change in the list.
+
+---
+
+CHALLENGES — lib/features/challenges/challenges_screen.dart:
+
+Tabs: "Active" | "My Challenges" | "Completed"
+
+Challenge card design:
+- Title (bold, white)
+- Challenge type icon + activity type badge
+- Progress bar (current_value / target_value, green fill)
+- Time remaining (countdown: "3 days left" or "Ends today!")
+- Participants count
+- XP reward badge (green pill)
+- Join button (if not joined) or Progress label
+
+Tapping a challenge card → ChallengeDetailScreen:
+- Full challenge description
+- Leaderboard of participants sorted by current_value (progress)
+- User's own progress prominently shown
+- Join/Leave button
+- Creator info
+
+Create Challenge screen (FAB button on challenges screen):
+Form fields:
+- Title
+- Description
+- Challenge type: Distance / Territory / Streak / Speed / Elevation (segmented selector)
+- Activity type: Run / Walk / Cycle / Any
+- Target value + unit (auto-set based on type)
+- Start date / End date (date pickers)
+- Public toggle
+- XP reward (preset options: 50, 100, 200, 500)
+Submit → insert into challenges table. Auto-join creator as first participant.
+
+Progress tracking: when a user completes an activity_session, automatically update their challenge_participants.current_value for all active challenges they're enrolled in (match by activity_type and add distance_km or session count or elevation depending on challenge_type). Do this in a Supabase Edge Function triggered after session insert, OR do it client-side in the activity save flow.
+
+When current_value >= target_value: set completed = true, completed_at = now(), call award_xp with challenge xp_reward, insert notification of type 'goal_completed', award any badge linked to the challenge.
+```
+
+---
+
+# PHASE 7 — Flutter: Profile, Goals & Badges
+**→ Send this to: Antigravity (Flutter AI)**
+
+---
+
+```
+Build the Profile, Fitness Goals, and Badges screens for TURF.
+
+---
+
+PROFILE SCREEN — lib/features/profile/profile_screen.dart:
+
+Header section (top 35% of screen):
+- Full bleed background: blurred version of user's last activity route map OR a dark gradient
+- Circular avatar (80px, border: 3px green, CachedNetworkImage)
+- Username (large, bold, white)
+- Bio text (secondary color)
+- Level badge: "LVL 12" pill (green)
+- Edit profile button (top right, icon button)
+
+Stats row (4 metrics in a horizontal row):
+- Total km | Total XP | Territories | Streak (days)
+Each stat: large number (Space Grotesk) + small label below
+
+XP Progress bar:
+- Shows progress from current level to next level
+- "1,240 / 2,500 XP to Level 6"
+- Green fill bar with animated fill
+
+Tabs below stats: Activities | Badges | Goals | Territories
+
+Activities tab:
+- Same feed card design as activity feed
+- Only this user's sessions, paginated
+
+Badges tab:
+- Grid (3 columns) of all badge types
+- Earned badges: full color, show earned date on long press
+- Unearned badges: grayscale, 40% opacity, lock icon overlay
+- Tapping earned badge: shows badge detail bottom sheet (name, description, how earned)
+
+Goals tab: redirect to Goals screen or embed inline
+
+Territories tab:
+- List of territories owned by this user
+- Territory name | captured date | capture count
+- Tap → open map centered on that territory
+
+---
+
+GOALS — lib/features/goals/goals_screen.dart:
+
+Active goals list:
+Each goal card:
+- Goal type label + icon
+- Progress bar (current / target, green)
+- "4.2 / 10 km" text
+- Percentage complete
+- Days remaining
+- Mark complete button (auto-disabled when 100%)
+
+Create goal FAB:
+Goal types: Weekly Distance, Monthly Distance, Weekly Sessions, Streak
+Fields: target value, start/end date
+Insert into fitness_goals table.
+
+When activity_session is saved: update current_value in all active fitness_goals matching the goal_type (add distance or increment session count). If current_value >= target_value → set completed = true → insert notification → show confetti on next app open.
+
+---
+
+SETTINGS SCREEN:
+- Edit Profile (name, bio, avatar)
+- Change Password
+- Notification preferences (toggles for each notification type — store in shared_preferences)
+- Units: km / miles toggle
+- Weight input (for calorie calculation)
+- Privacy: Public profile / Friends only / Private
+- Google account connection status
+- Terms & Conditions link: https://www.termsfeed.com/live/340e81fc-0ff8-43cf-ae39-4a335d13462a
+- Privacy Policy link (same URL)
+- Sign Out button (red, bottom)
+- Delete Account button (destructive, confirmation dialog)
+```
+
+---
+
+# PHASE 8 — Flutter: Performance, Polish & Final Features
+**→ Send this to: Antigravity (Flutter AI)**
+
+---
+
+```
+Final polish phase for TURF app. Focus on performance, animations, UX details, and missing features.
+
+---
+
+PERFORMANCE OPTIMIZATIONS:
+
+1. Image loading: All user avatars and images use CachedNetworkImage with:
+   - placeholder: shimmer box
+   - errorWidget: colored circle with user initials
+   - memCacheWidth/memCacheHeight: 200px (downscale in memory)
+
+2. Map performance:
+   - Only load territories within current map viewport bounds
+   - Debounce map movement events (300ms) before re-querying territories
+   - Use ClusterLayer for territories when zoomed out (if flutter_map_marker_cluster is available)
+   - Dispose map controller properly on screen exit
+
+3. Riverpod providers:
+   - Use AsyncNotifierProvider for all async data
+   - Use StreamProvider for all Supabase Realtime subscriptions
+   - Cancel all Supabase subscriptions in dispose/onDispose
+   - Use ref.keepAlive() only for auth and profile providers
+
+4. Lists:
+   - All lists use ListView.builder (never ListView with children)
+   - Use const constructors on all static widgets
+   - Separate StatefulWidgets for items that need their own state
+
+5. Route preloading: preload the map tiles for user's last known location on app start
+
+6. Offline handling: if Supabase call fails due to no network → show appropriate "No connection" UI with retry button. Never crash.
+
+---
+
+ANIMATIONS & MICRO-INTERACTIONS:
+
+1. Activity start countdown: scale + fade animation for 3-2-1
+2. XP earned: animate number counting up (e.g., from 0 to 250 over 1.5 seconds)
+3. Level up: full screen overlay with Lottie "level up" animation + new level displayed
+4. Territory capture: confetti burst + territory circle color animates from white/red to green
+5. Leaderboard rank changes: animate list item sliding to new position
+6. Progress bars: always animate fill on first load (300ms ease)
+7. Bottom sheets: smooth slide up with spring physics
+8. Page transitions: custom slide transitions (right-to-left for push, bottom-to-top for modals)
+9. Pull to refresh: custom green spinning TURF logo animation
+10. Streak counter: flame animation icon next to streak number
+
+---
+
+FINAL FEATURES:
+
+Dark/Light mode toggle in settings (store in shared_preferences). Light mode uses:
+- Background: #F2F2F7
+- Surface: #FFFFFF
+- Text: #000000
+- Primary: #00C853 (slightly darker green for light mode legibility)
+
+Search screen:
+- Search for users by username (query profiles)
+- Search for territories by name (query territories)
+- Recent searches stored locally in shared_preferences
+
+App badge on device icon: show unread notification count (use flutter_local_notifications or platform channel).
+
+Weekly summary notification: every Sunday at 8pm local time (use workmanager), generate a summary: "This week: X km, X territories, X XP earned. Keep it up!"
+
+Empty states: all lists/tabs must have beautiful empty state illustrations (use SVG assets or Lottie). Never show a blank screen.
+Examples:
+- No activities yet: running shoe illustration + "Start your first run"
+- No friends yet: two people illustration + "Find your tribe"
+- No territories: map illustration + "Get out and claim your first zone"
+
+Error states: all network errors show a retry button. Never show raw error messages to user — show friendly messages.
+
+Deep links: handle these URL schemes:
+- turf://profile/:userId
+- turf://challenge/:challengeId  
+- turf://territory/:territoryId
+Register scheme: com.turf.app
+
+App icon: solid black background, white "TURF" text in Space Grotesk bold, small green underline accent. Generate all sizes using flutter_launcher_icons.
+
+Splash screen: update using flutter_native_splash — black background, white TURF logo centered.
+
+Final checklist before submission:
+- All Supabase calls wrapped in try/catch with user-friendly error handling
+- No hardcoded user IDs anywhere
+- All streams properly disposed
+- Location permissions requested with proper rationale dialogs
+- Notification permissions requested on first launch
+- App works on both Android (API 21+) and iOS (13+)
+- No demo/mock data anywhere — 100% Supabase real-time
+- Terms & Conditions accepted before account creation enforced
+- Google Sign-In tested and working
+- Background location tracking shows persistent notification
+```
+
+---
+
+# QUICK REFERENCE — Supabase Connection
+
+```dart
+// lib/main.dart — already initialized
+await Supabase.initialize(
+  url: 'https://lcrfzwxkrkiuvfhkgfju.supabase.co',
+  anonKey: 'sb_publishable_hLE459WDGvetlxZvwMhyGQ_OkwjBtGm',
+);
+
+// Access client anywhere
+final supabase = Supabase.instance.client;
+final user = supabase.auth.currentUser;
+```
+
+---
+
+# TABLE NAME REFERENCE (Never Change These)
+
+| Table | Purpose |
+|-------|---------|
+| profiles | User profiles & stats |
+| activity_sessions | Completed run/walk/cycle sessions |
+| location_pings | Raw GPS pings during activity |
+| territories | Map territory definitions & ownership |
+| territory_captures | History of territory captures |
+| friendships | Friend relationships |
+| challenges | Community/personal challenges |
+| challenge_participants | User enrollment in challenges |
+| leaderboard_entries | Computed leaderboard rankings |
+| badges | Badge definitions |
+| user_badges | Badges earned by users |
+| fitness_goals | Personal fitness goals |
+| notifications | In-app notifications |
+
+---
+
+*TURF App — Built with Flutter + Supabase*
+*Terms & Conditions: https://www.termsfeed.com/live/340e81fc-0ff8-43cf-ae39-4a335d13462a*
