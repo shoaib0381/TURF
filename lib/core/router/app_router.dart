@@ -21,6 +21,7 @@ import 'package:turf/features/notifications/presentation/notifications_screen.da
 import 'package:turf/features/activity/presentation/countdown_screen.dart' as turf_countdown;
 import 'package:turf/features/activity/presentation/activity_summary_screen.dart' as turf_summary;
 import 'package:turf/features/activity/domain/models/activity_session.dart' as turf_models;
+import 'package:turf/features/profile/domain/models/profile.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
 final GlobalKey<NavigatorState> _shellNavigatorKey = GlobalKey<NavigatorState>();
@@ -87,7 +88,10 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/profile/:userId',
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => const PublicProfileScreen(),
+      builder: (context, state) {
+        final profile = state.extra as Profile;
+        return PublicProfileScreen(profile: profile);
+      },
     ),
     GoRoute(
       path: '/friends',

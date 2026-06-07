@@ -12,6 +12,7 @@ class ActivitySession {
   final double elevationGainM;
   final String routePolyline;
   final int xpEarned;
+  final Map<String, dynamic> metadata;
 
   ActivitySession({
     this.id,
@@ -27,6 +28,7 @@ class ActivitySession {
     required this.elevationGainM,
     required this.routePolyline,
     required this.xpEarned,
+    this.metadata = const {},
   });
 
   Map<String, dynamic> toJson() {
@@ -44,6 +46,7 @@ class ActivitySession {
       'elevation_gain_m': elevationGainM,
       'route_polyline': routePolyline,
       'xp_earned': xpEarned,
+      'metadata': metadata,
     };
   }
 
@@ -62,6 +65,7 @@ class ActivitySession {
       elevationGainM: (json['elevation_gain_m'] as num).toDouble(),
       routePolyline: json['route_polyline'] as String,
       xpEarned: json['xp_earned'] as int,
+      metadata: json['metadata'] as Map<String, dynamic>? ?? {},
     );
   }
 }

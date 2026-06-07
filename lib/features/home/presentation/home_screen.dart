@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:turf/core/theme/app_theme.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:turf/features/notifications/presentation/providers/notification_provider.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends ConsumerWidget {
   final Widget child;
 
   const HomeScreen({super.key, required this.child});
@@ -38,8 +40,10 @@ class HomeScreen extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final currentIndex = _calculateSelectedIndex(context);
+    final unreadCountAsync = ref.watch(unreadNotificationCountProvider);
+    final unreadCount = unreadCountAsync.value ?? 0;
 
     return Scaffold(
       body: child,
@@ -81,9 +85,19 @@ class HomeScreen extends StatelessWidget {
             activeIcon: Icon(Icons.emoji_events),
             label: 'Leaderboard',
           ),
-          const BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
-            activeIcon: Icon(Icons.person),
+          BottomNavigationBarItem(
+            icon: Badge(
+              isLabelVisible: unreadCount > 0,
+              label: Text(unreadCount.toString()),
+              backgroundColor: const Color(0xFFFF453A),
+              child: const Icon(Icons.person_outline),
+            ),
+            activeIcon: Badge(
+              isLabelVisible: unreadCount > 0,
+              label: Text(unreadCount.toString()),
+              backgroundColor: const Color(0xFFFF453A),
+              child: const Icon(Icons.person),
+            ),
             label: 'Profile',
           ),
         ],

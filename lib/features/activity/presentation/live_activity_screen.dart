@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
 import 'package:go_router/go_router.dart';
 import 'package:turf/features/activity/presentation/providers/live_activity_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
