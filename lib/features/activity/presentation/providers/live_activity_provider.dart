@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:turf/core/services/location_service.dart';
 import 'package:turf/core/services/background_tracking_service.dart';
 import 'package:turf/core/utils/polyline_codec.dart';
 import 'package:turf/features/activity/data/activity_repository.dart';

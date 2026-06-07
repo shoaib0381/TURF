@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:turf/features/activity/domain/models/activity_session.dart';
 import 'package:turf/features/activity/domain/models/location_ping.dart';
+import 'package:turf/features/goals/domain/models/fitness_goal.dart';
 
 class ActivityRepository {
   final SupabaseClient _supabase;
@@ -77,6 +78,40 @@ class ActivityRepository {
         }
       } catch (e) {
         print('Error updating challenge progress: $e');
+      }
+
+      // 4. Update active fitness goals
+      try {
+        final activeGoals = await _supabase
+            .from('fitness_goals')
+            .select()
+            .eq('user_id', session.userId)
+            .eq('completed', false);
+
+        for (var goalData in activeGoals) {
+          final goal = FitnessGoal.fromJson(goalData);
+          final isExpired = DateTime.now().isAfter(goal.endsAt);
+          if (isExpired) continue;
+
+          double newValue = goal.currentValue;
+          if (goal.goalType == 'weekly_distance' || goal.goalType == 'monthly_distance') {
+            newValue += session.distanceKm;
+          } else if (goal.goalType == 'weekly_sessions' || goal.goalType == 'streak') {
+            newValue += 1; // Basic increment
+          }
+
+          if (newValue > goal.currentValue) {
+            final completed = newValue >= goal.targetValue;
+            await _supabase.from('fitness_goals').update({
+              'current_value': newValue,
+              'completed': completed,
+            }).eq('id', goal.id);
+
+            // Send notification logic via edge function or trigger in production
+          }
+        }
+      } catch (e) {
+        print('Error updating fitness goals progress: $e');
       }
     } catch (e) {
       print('Error saving activity session: $e');
