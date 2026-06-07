@@ -117,19 +117,16 @@ flutter:
   # see https://flutter.dev/to/font-from-package
 
 flutter_launcher_icons:
-  android: "launcher_icon"
+  android: true
   ios: true
-  image_path: "assets/images/app_icon.png"
+  image_path: 'assets/images/iconlogo.png'
   min_sdk_android: 21
-  web:
-    generate: true
-    image_path: "assets/images/app_icon.png"
-    background_color: "#000000"
-    theme_color: "#00E676"
+  adaptive_icon_background: '#0A0A0A'
+  adaptive_icon_foreground: 'assets/images/iconlogo.png'
 
 flutter_native_splash:
   color: "#0A0A0A"
-  image: "assets/images/splash_logo.png"
+  image: "assets/images/iconlogo.png"
   android_12:
     color: "#0A0A0A"
-    image: "assets/images/splash_logo.png"
+    image: "assets/images/iconlogo.png"

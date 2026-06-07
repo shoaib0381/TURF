@@ -178,7 +178,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('TURF', style: TextStyle(letterSpacing: 2)),
+        title: Image.asset('assets/images/iconlogo.png', height: 32),
         bottom: TabBar(
           controller: _tabController,
           indicatorColor: AppTheme.primaryColor,

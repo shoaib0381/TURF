@@ -81,12 +81,9 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
               ),
             ),
             const SizedBox(height: 24),
-            Text(
-              'TURF',
-              style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                fontSize: 64,
-                letterSpacing: 8,
-              ),
+            Image.asset(
+              'assets/images/iconlogo.png',
+              height: 64,
             ),
             const SizedBox(height: 8),
             AnimatedBuilder(
