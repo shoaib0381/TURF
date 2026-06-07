@@ -6,6 +6,7 @@ import 'package:timeago/timeago.dart' as timeago;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:turf/core/widgets/empty_state.dart';
 import 'package:turf/features/profile/domain/models/profile.dart';
 import 'package:turf/features/friends/presentation/providers/friends_provider.dart';
 
@@ -73,7 +74,11 @@ class _FriendsListTab extends ConsumerWidget {
       error: (e, _) => Center(child: Text('Error loading friends', style: const TextStyle(color: Colors.red))),
       data: (friendships) {
         if (friendships.isEmpty) {
-          return const Center(child: Text("You haven't added any friends yet.", style: TextStyle(color: Colors.white54)));
+          return const EmptyState(
+            icon: Icons.people_outline,
+            title: 'No friends yet',
+            subtitle: 'Find your tribe in the Find People tab.',
+          );
         }
 
         return RefreshIndicator(
@@ -132,7 +137,11 @@ class _RequestsTab extends ConsumerWidget {
       error: (e, _) => Center(child: Text('Error loading requests', style: const TextStyle(color: Colors.red))),
       data: (requests) {
         if (requests.isEmpty) {
-          return const Center(child: Text("No pending requests.", style: TextStyle(color: Colors.white54)));
+          return const EmptyState(
+            icon: Icons.mail_outline,
+            title: 'No pending requests',
+            subtitle: 'You are all caught up!',
+          );
         }
 
         return RefreshIndicator(

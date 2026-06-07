@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:turf/core/widgets/empty_state.dart';
 import 'package:turf/features/goals/presentation/providers/goal_provider.dart';
 
 class GoalsScreen extends ConsumerWidget {
@@ -21,7 +22,11 @@ class GoalsScreen extends ConsumerWidget {
         error: (e, _) => Center(child: Text('Error loading goals: $e', style: const TextStyle(color: Colors.red))),
         data: (goals) {
           if (goals.isEmpty) {
-            return const Center(child: Text('No active goals. Tap + to create one.', style: TextStyle(color: Colors.white54)));
+            return const EmptyState(
+              icon: Icons.flag_outlined,
+              title: 'No active goals',
+              subtitle: 'Tap the + button to create a new fitness goal.',
+            );
           }
 
           return RefreshIndicator(

@@ -6,6 +6,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:shimmer/shimmer.dart';
 
 import 'package:turf/core/utils/polyline_codec.dart';
+import 'package:turf/core/widgets/empty_state.dart';
 import 'package:turf/features/activity/domain/models/feed_activity.dart';
 import 'package:turf/features/activity/presentation/providers/activity_feed_provider.dart';
 
@@ -115,7 +116,11 @@ class _ActivityFeedScreenState extends ConsumerState<ActivityFeedScreen> with Si
     }
 
     if (activities.isEmpty) {
-      return const Center(child: Text('No activities yet.', style: TextStyle(color: Colors.white54)));
+      return const EmptyState(
+        icon: Icons.directions_run,
+        title: 'No activities yet',
+        subtitle: 'Hit the green START button to record your first session.',
+      );
     }
 
     return RefreshIndicator(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:turf/core/theme/app_theme.dart';
+import 'package:turf/core/theme/theme_provider.dart';
 import 'package:turf/core/router/app_router.dart';
 import 'package:turf/core/services/background_tracking_service.dart' as turf_bg;
 
@@ -22,14 +23,18 @@ Future<void> main() async {
   );
 }
 
-class TurfApp extends StatelessWidget {
+class TurfApp extends ConsumerWidget {
   const TurfApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final themeMode = ref.watch(themeProvider);
+    
     return MaterialApp.router(
       title: 'TURF',
-      theme: AppTheme.darkTheme,
+      themeMode: themeMode,
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
       routerConfig: appRouter,
       debugShowCheckedModeBanner: false,
     );

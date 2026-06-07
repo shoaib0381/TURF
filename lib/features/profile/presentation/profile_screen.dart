@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'package:turf/core/widgets/empty_state.dart';
+import 'package:turf/core/widgets/animated_number.dart';
 import 'package:turf/features/profile/presentation/providers/badge_provider.dart';
 import 'package:turf/features/profile/presentation/providers/profile_provider.dart';
 
@@ -139,20 +141,27 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
                                   Row(
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
-                                      Text('${profile.totalXp} XP', style: const TextStyle(color: Colors.white, fontSize: 12)),
+                                      AnimatedNumber(value: profile.totalXp, suffix: ' XP', style: const TextStyle(color: Colors.white, fontSize: 12)),
                                       Text('$maxXp XP', style: const TextStyle(color: Colors.white54, fontSize: 12)),
                                     ],
                                   ),
                                   const SizedBox(height: 4),
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(4),
-                                    child: LinearProgressIndicator(
-                                      value: progress,
-                                      backgroundColor: const Color(0xFF1C1C1E),
-                                      valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF00E676)),
-                                      minHeight: 6,
+                                    TweenAnimationBuilder<double>(
+                                      tween: Tween<double>(begin: 0, end: progress.clamp(0.0, 1.0)),
+                                      duration: const Duration(milliseconds: 1500),
+                                      curve: Curves.easeOutCubic,
+                                      builder: (context, val, child) {
+                                        return ClipRRect(
+                                          borderRadius: BorderRadius.circular(4),
+                                          child: LinearProgressIndicator(
+                                            value: val,
+                                            backgroundColor: const Color(0xFF1C1C1E),
+                                            valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF00E676)),
+                                            minHeight: 6,
+                                          ),
+                                        );
+                                      },
                                     ),
-                                  ),
                                   const SizedBox(height: 4),
                                   Text(
                                     '${maxXp - profile.totalXp} XP to Level ${profile.level + 1}',
@@ -253,7 +262,12 @@ class _StatItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Text(value, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold, fontFamily: 'Space Grotesk')),
+        AnimatedNumber(
+          value: double.tryParse(value.replaceAll(RegExp(r'[^0-9.]'), '')) ?? 0,
+          suffix: value.contains('d') ? 'd' : null,
+          fractionDigits: value.contains('.') ? 1 : 0,
+          style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold, fontFamily: 'Space Grotesk'),
+        ),
         const SizedBox(height: 4),
         Text(label, style: const TextStyle(color: Colors.white54, fontSize: 12)),
       ],
@@ -277,7 +291,7 @@ class _ActivitiesTab extends ConsumerWidget {
         if (snapshot.hasError) return Center(child: Text('Error: ${snapshot.error}', style: const TextStyle(color: Colors.red)));
         
         final sessions = snapshot.data as List?;
-        if (sessions == null || sessions.isEmpty) return const Center(child: Text("No activities yet.", style: TextStyle(color: Colors.white54)));
+        if (sessions == null || sessions.isEmpty) return const EmptyState(icon: Icons.directions_run, title: 'No activities yet', subtitle: 'Start moving!');
 
         return ListView.builder(
           padding: const EdgeInsets.all(16),
@@ -478,7 +492,7 @@ class _TerritoriesTab extends ConsumerWidget {
         if (snapshot.hasError) return Center(child: Text('Error: ${snapshot.error}', style: const TextStyle(color: Colors.red)));
         
         final territories = snapshot.data as List?;
-        if (territories == null || territories.isEmpty) return const Center(child: Text("No territories owned.", style: TextStyle(color: Colors.white54)));
+        if (territories == null || territories.isEmpty) return const EmptyState(icon: Icons.flag, title: 'No territories owned', subtitle: 'Go claim some zones!');
 
         return ListView.builder(
           padding: const EdgeInsets.all(16),

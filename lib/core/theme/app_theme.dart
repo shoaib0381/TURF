@@ -128,4 +128,104 @@ class AppTheme {
       highlightColor: primaryColor.withOpacity(0.1),
     );
   }
+
+  static ThemeData get lightTheme {
+    const lightBg = Color(0xFFF2F2F7);
+    const lightSurface = Color(0xFFFFFFFF);
+    const lightText = Color(0xFF000000);
+    const lightTextSec = Color(0xFF8E8E93);
+    const lightPrimary = Color(0xFF00C853); // Slightly darker green for light mode
+
+    return ThemeData(
+      brightness: Brightness.light,
+      scaffoldBackgroundColor: lightBg,
+      primaryColor: lightPrimary,
+      colorScheme: const ColorScheme.light(
+        primary: lightPrimary,
+        surface: lightSurface,
+        error: danger,
+        onPrimary: lightSurface,
+      ),
+      
+      // Fonts
+      textTheme: GoogleFonts.interTextTheme(ThemeData.light().textTheme).copyWith(
+        displayLarge: GoogleFonts.spaceGrotesk(color: lightText, fontWeight: FontWeight.bold),
+        displayMedium: GoogleFonts.spaceGrotesk(color: lightText, fontWeight: FontWeight.bold),
+        displaySmall: GoogleFonts.spaceGrotesk(color: lightText, fontWeight: FontWeight.bold),
+        headlineLarge: GoogleFonts.spaceGrotesk(color: lightText, fontWeight: FontWeight.w700),
+        headlineMedium: GoogleFonts.spaceGrotesk(color: lightText, fontWeight: FontWeight.w700),
+        headlineSmall: GoogleFonts.spaceGrotesk(color: lightText, fontWeight: FontWeight.w700),
+        bodyLarge: GoogleFonts.inter(color: lightText),
+        bodyMedium: GoogleFonts.inter(color: lightTextSec),
+        bodySmall: GoogleFonts.inter(color: textTertiary),
+      ),
+
+      appBarTheme: const AppBarTheme(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: true,
+        iconTheme: IconThemeData(color: lightText),
+        titleTextStyle: TextStyle(color: lightText, fontWeight: FontWeight.bold, fontSize: 20),
+      ),
+
+      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+        backgroundColor: lightSurface,
+        selectedItemColor: lightPrimary,
+        unselectedItemColor: lightTextSec,
+        type: BottomNavigationBarType.fixed,
+        elevation: 8,
+      ),
+
+      cardTheme: CardThemeData(
+        color: lightSurface,
+        elevation: 1,
+        shadowColor: Colors.black12,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
+
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: lightPrimary,
+          foregroundColor: lightSurface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(50),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          textStyle: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 16),
+        ),
+      ),
+      
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: lightPrimary,
+          textStyle: GoogleFonts.inter(fontWeight: FontWeight.w600),
+        ),
+      ),
+
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: const Color(0xFFF9F9F9),
+        hintStyle: GoogleFonts.inter(color: lightText.withOpacity(0.5)),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Colors.black12),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Colors.black12),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: lightPrimary, width: 2),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: danger, width: 1),
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      ),
+    );
+  }
 }

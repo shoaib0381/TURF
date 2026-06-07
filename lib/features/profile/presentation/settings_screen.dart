@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'package:turf/core/theme/theme_provider.dart';
 import 'package:turf/features/profile/presentation/providers/profile_provider.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -48,12 +49,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final profileAsync = ref.watch(profileProvider);
+    final themeMode = ref.watch(themeProvider);
+    final isDark = themeMode == ThemeMode.dark;
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        title: const Text('Settings', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+        title: const Text('Settings'),
       ),
       body: ListView(
         children: [
@@ -62,21 +64,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             title: 'Profile',
             children: [
               ListTile(
-                title: const Text('Edit Profile', style: TextStyle(color: Colors.white)),
-                subtitle: const Text('Name, Bio, Avatar', style: TextStyle(color: Colors.white54)),
-                trailing: const Icon(Icons.chevron_right, color: Colors.white54),
-                onTap: () {
-                  // Push edit profile modal
-                },
-              ),
-              ListTile(
-                title: const Text('Change Password', style: TextStyle(color: Colors.white)),
-                trailing: const Icon(Icons.chevron_right, color: Colors.white54),
+                title: const Text('Edit Profile'),
+                subtitle: const Text('Name, Bio, Avatar'),
+                trailing: const Icon(Icons.chevron_right),
                 onTap: () {},
               ),
               ListTile(
-                title: const Text('Weight', style: TextStyle(color: Colors.white)),
-                subtitle: const Text('Used for calorie calculation', style: TextStyle(color: Colors.white54)),
+                title: const Text('Change Password'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {},
+              ),
+              ListTile(
+                title: const Text('Weight'),
+                subtitle: const Text('Used for calorie calculation'),
                 trailing: const Text('70 kg', style: TextStyle(color: Color(0xFF00E676), fontWeight: FontWeight.bold)),
                 onTap: () {},
               ),
@@ -88,16 +88,24 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             title: 'Preferences',
             children: [
               SwitchListTile(
-                title: const Text('Push Notifications', style: TextStyle(color: Colors.white)),
+                title: const Text('Dark Mode'),
+                activeColor: const Color(0xFF00E676),
+                value: isDark,
+                onChanged: (v) {
+                  ref.read(themeProvider.notifier).toggleTheme();
+                },
+              ),
+              SwitchListTile(
+                title: const Text('Push Notifications'),
                 activeColor: const Color(0xFF00E676),
                 value: _notifsEnabled,
                 onChanged: (v) => setState(() => _notifsEnabled = v),
               ),
               ListTile(
-                title: const Text('Units', style: TextStyle(color: Colors.white)),
+                title: const Text('Units'),
                 trailing: DropdownButton<String>(
                   value: _units,
-                  dropdownColor: const Color(0xFF1C1C1E),
+                  dropdownColor: Theme.of(context).cardColor,
                   style: const TextStyle(color: Color(0xFF00E676), fontWeight: FontWeight.bold),
                   underline: const SizedBox(),
                   items: const [

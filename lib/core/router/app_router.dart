@@ -21,6 +21,7 @@ import 'package:turf/features/challenges/presentation/create_challenge_screen.da
 import 'package:turf/features/friends/presentation/friends_screen.dart';
 import 'package:turf/features/goals/presentation/goals_screen.dart';
 import 'package:turf/features/goals/presentation/create_goal_screen.dart';
+import 'package:turf/features/search/presentation/search_screen.dart';
 import 'package:turf/features/notifications/presentation/notifications_screen.dart';
 import 'package:turf/features/activity/presentation/countdown_screen.dart' as turf_countdown;
 import 'package:turf/features/activity/presentation/activity_summary_screen.dart' as turf_summary;
@@ -129,6 +130,11 @@ final appRouter = GoRouter(
       path: '/notifications',
       parentNavigatorKey: _rootNavigatorKey,
       builder: (context, state) => const NotificationsScreen(),
+    ),
+    GoRoute(
+      path: '/search',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const SearchScreen(),
     ),
     GoRoute(
       path: '/settings',

@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:confetti/confetti.dart';
@@ -224,21 +225,43 @@ class _MapScreenState extends ConsumerState<MapScreen> {
               ),
 
               // Territories Markers
-              MarkerLayer(
-                markers: territories.map((t) {
-                  return Marker(
-                    point: t.center,
-                    width: 40,
-                    height: 40,
-                    child: GestureDetector(
-                      onTap: () => _showTerritoryInfo(t, currentPos),
-                      child: PulsingMarker(
-                        color: _getTerritoryColor(t),
-                        size: 24,
+              MarkerClusterLayerWidget(
+                options: MarkerClusterLayerOptions(
+                  maxClusterRadius: 45,
+                  size: const Size(40, 40),
+                  alignment: Alignment.center,
+                  padding: const EdgeInsets.all(50),
+                  maxZoom: 15,
+                  markers: territories.map((t) {
+                    return Marker(
+                      point: t.center,
+                      width: 40,
+                      height: 40,
+                      child: GestureDetector(
+                        onTap: () => _showTerritoryInfo(t, currentPos),
+                        child: PulsingMarker(
+                          color: _getTerritoryColor(t),
+                          size: 24,
+                        ),
                       ),
-                    ),
-                  );
-                }).toList(),
+                    );
+                  }).toList(),
+                  builder: (context, markers) {
+                    return Container(
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF00E676),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.black, width: 2),
+                      ),
+                      child: Center(
+                        child: Text(
+                          markers.length.toString(),
+                          style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    );
+                  },
+                ),
               ),
 
               // User Location
