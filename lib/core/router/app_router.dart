@@ -14,7 +14,10 @@ import 'package:turf/features/leaderboard/presentation/leaderboard_screen.dart';
 import 'package:turf/features/profile/presentation/profile_screen.dart';
 import 'package:turf/features/profile/presentation/public_profile_screen.dart';
 import 'package:turf/features/profile/presentation/settings_screen.dart';
+import 'package:turf/features/challenges/domain/models/challenge.dart';
 import 'package:turf/features/challenges/presentation/challenge_detail_screen.dart';
+import 'package:turf/features/challenges/presentation/challenges_screen.dart';
+import 'package:turf/features/challenges/presentation/create_challenge_screen.dart';
 import 'package:turf/features/friends/presentation/friends_screen.dart';
 import 'package:turf/features/goals/presentation/goals_screen.dart';
 import 'package:turf/features/notifications/presentation/notifications_screen.dart';
@@ -81,9 +84,22 @@ final appRouter = GoRouter(
       builder: (context, state) => const ActivityDetailScreen(),
     ),
     GoRoute(
+      path: '/home/challenges',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const ChallengesScreen(),
+    ),
+    GoRoute(
+      path: '/challenge/create',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const CreateChallengeScreen(),
+    ),
+    GoRoute(
       path: '/challenge/:id',
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => const ChallengeDetailScreen(),
+      builder: (context, state) {
+        final challenge = state.extra as Challenge;
+        return ChallengeDetailScreen(challenge: challenge);
+      },
     ),
     GoRoute(
       path: '/profile/:userId',
