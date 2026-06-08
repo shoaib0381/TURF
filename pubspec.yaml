@@ -89,6 +89,7 @@ flutter:
   assets:
     - assets/images/
     - assets/lottie/
+    - assets/turf_splash_bg.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
