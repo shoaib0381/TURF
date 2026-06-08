@@ -93,15 +93,16 @@ class _ActivitySummaryScreenState extends State<ActivitySummaryScreen> {
                                 TextSourceAttribution('OpenStreetMap', onTap: () => launchUrl(Uri.parse('https://www.openstreetmap.org/copyright')), prependCopyright: true),
                               ],
                             ),
-                            PolylineLayer(
-                              polylines: [
-                                Polyline(
-                                  points: _routePoints,
-                                  color: const Color(0xFF00E676),
-                                  strokeWidth: 4,
-                                ),
-                              ],
-                            ),
+                            if (_routePoints.isNotEmpty)
+                              PolylineLayer(
+                                polylines: [
+                                  Polyline(
+                                    points: _routePoints,
+                                    color: const Color(0xFF00E676),
+                                    strokeWidth: 4,
+                                  ),
+                                ],
+                              ),
                           ],
                         ),
                       ),

@@ -11,6 +11,7 @@ import 'package:turf/features/activity/domain/models/location_ping.dart';
 import 'package:turf/features/map/presentation/providers/location_provider.dart';
 import 'package:turf/features/map/domain/models/territory.dart';
 import 'package:turf/features/map/presentation/providers/territories_provider.dart';
+import 'package:turf/features/activity/presentation/providers/activity_feed_provider.dart';
 
 enum TrackingState { idle, countdown, active, paused, finished }
 
@@ -139,8 +140,12 @@ class LiveActivityNotifier extends Notifier<LiveActivityState> {
     _startLocationUpdates();
   }
 
-  void _startLocationUpdates() {
+  Future<void> _startLocationUpdates() async {
     final locationService = ref.read(locationServiceProvider);
+    
+    final hasPermission = await locationService.handlePermission();
+    if (!hasPermission) return;
+
     _positionSub = locationService.getPositionStream().listen((pos) {
       if (state.status != TrackingState.active) return;
 
@@ -282,6 +287,10 @@ class LiveActivityNotifier extends Notifier<LiveActivityState> {
     );
 
     await ref.read(activityRepositoryProvider).saveActivitySession(session);
+    
+    // Refresh the feed immediately so it shows up in "My Activities"
+    ref.read(activityFeedProvider.notifier).loadInitialData();
+    
     return session;
   }
 }

@@ -10,6 +10,7 @@ import 'package:turf/features/map/presentation/map_screen.dart';
 import 'package:turf/features/activity/presentation/activity_feed_screen.dart';
 import 'package:turf/features/activity/presentation/live_activity_screen.dart';
 import 'package:turf/features/activity/presentation/activity_detail_screen.dart';
+import 'package:turf/features/activity/domain/models/feed_activity.dart';
 import 'package:turf/features/leaderboard/presentation/leaderboard_screen.dart';
 import 'package:turf/features/profile/presentation/profile_screen.dart';
 import 'package:turf/features/profile/presentation/public_profile_screen.dart';
@@ -80,11 +81,7 @@ final appRouter = GoRouter(
       parentNavigatorKey: _rootNavigatorKey, // Full screen, no bottom nav
       builder: (context, state) => const LiveActivityScreen(),
     ),
-    GoRoute(
-      path: '/activity/:id',
-      parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => const ActivityDetailScreen(),
-    ),
+
     GoRoute(
       path: '/home/challenges',
       parentNavigatorKey: _rootNavigatorKey,
@@ -151,6 +148,17 @@ final appRouter = GoRouter(
       builder: (context, state) {
         final session = state.extra as turf_models.ActivitySession;
         return turf_summary.ActivitySummaryScreen(session: session);
+      },
+    ),
+    GoRoute(
+      path: '/activity/:id',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) {
+        final activity = state.extra as FeedActivity?;
+        if (activity == null) {
+          return const Scaffold(body: Center(child: Text('Activity not found')));
+        }
+        return ActivityDetailScreen(activity: activity);
       },
     ),
   ],

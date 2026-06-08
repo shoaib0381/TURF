@@ -1,13 +1,28 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:turf/features/activity/presentation/widgets/activity_type_picker.dart' as turf_picker;
+import 'package:turf/features/profile/presentation/providers/profile_provider.dart';
+import 'package:turf/features/map/presentation/providers/territories_provider.dart';
 
-class FloatingBottomStats extends StatelessWidget {
+class FloatingBottomStats extends ConsumerWidget {
   const FloatingBottomStats({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final profileAsync = ref.watch(profileProvider);
+    final territoriesAsync = ref.watch(territoriesProvider);
+    final currentUserId = Supabase.instance.client.auth.currentUser?.id;
+
+    final String xp = profileAsync.value?.totalXp.toString() ?? '0';
+    final String distance = '${profileAsync.value?.totalDistanceKm.toStringAsFixed(1) ?? "0.0"} km';
+    final String territoriesCount = territoriesAsync.value
+            ?.where((t) => t.ownerId == currentUserId)
+            .length
+            .toString() ?? '0';
+
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),
@@ -28,9 +43,9 @@ class FloatingBottomStats extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _StatItem(label: 'XP Today', value: '450'),
-                  _StatItem(label: 'Territories', value: '12'),
-                  _StatItem(label: 'Distance', value: '5.2 km'),
+                  _StatItem(label: 'Total XP', value: xp),
+                  _StatItem(label: 'Territories', value: territoriesCount),
+                  _StatItem(label: 'Distance', value: distance),
                   
                   // Activity Start Button
                   GestureDetector(

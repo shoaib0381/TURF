@@ -73,15 +73,16 @@ class _LiveActivityScreenState extends ConsumerState<LiveActivityScreen> {
                           )
                         ],
                       ),
-                    PolylineLayer(
-                      polylines: [
-                        Polyline(
-                          points: state.routePoints,
-                          color: const Color(0xFF00E676),
-                          strokeWidth: 5.0,
-                        ),
-                      ],
-                    ),
+                    if (state.routePoints.isNotEmpty)
+                      PolylineLayer(
+                        polylines: [
+                          Polyline(
+                            points: state.routePoints,
+                            color: const Color(0xFF00E676),
+                            strokeWidth: 5.0,
+                          ),
+                        ],
+                      ),
                     if (state.routePoints.isNotEmpty)
                       MarkerLayer(
                         markers: [

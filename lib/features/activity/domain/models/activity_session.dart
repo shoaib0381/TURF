@@ -46,7 +46,6 @@ class ActivitySession {
       'elevation_gain_m': elevationGainM,
       'route_polyline': routePolyline,
       'xp_earned': xpEarned,
-      'metadata': metadata,
     };
   }
 

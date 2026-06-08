@@ -18,7 +18,9 @@ class _CountdownScreenState extends ConsumerState<CountdownScreen> {
   @override
   void initState() {
     super.initState();
-    ref.read(liveActivityProvider.notifier).startCountdown();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(liveActivityProvider.notifier).startCountdown();
+    });
     _startTimer();
   }
 

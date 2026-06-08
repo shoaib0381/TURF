@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:go_router/go_router.dart';
 import 'package:shimmer/shimmer.dart';
 
 import 'package:turf/core/utils/polyline_codec.dart';
@@ -171,12 +173,14 @@ class FeedCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final routePoints = PolylineCodec.decode(activity.session.routePolyline);
 
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFF141414),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white10),
-      ),
+    return GestureDetector(
+      onTap: () => context.push('/activity/${activity.session.id}', extra: activity),
+      child: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFF141414),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.white10),
+        ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -281,7 +285,7 @@ class FeedCard extends ConsumerWidget {
                 child: FlutterMap(
                   options: MapOptions(
                     initialCameraFit: CameraFit.bounds(
-                      bounds: LatLngBounds.fromPoints(routePoints),
+                      bounds: LatLngBounds.fromPoints(routePoints.isNotEmpty ? routePoints : [const LatLng(0,0)]),
                       padding: const EdgeInsets.all(24),
                     ),
                     interactionOptions: const InteractionOptions(flags: InteractiveFlag.none),
@@ -331,6 +335,7 @@ class FeedCard extends ConsumerWidget {
             ),
           ),
         ],
+      ),
       ),
     );
   }

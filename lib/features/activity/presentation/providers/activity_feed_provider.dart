@@ -117,6 +117,9 @@ class ActivityFeedNotifier extends Notifier<ActivityFeedState> {
               // It's possible a friend inserted it. For this phase, we just set the badge.
               // A full implementation would check if newSessionUserId is actually a friend.
               state = state.copyWith(hasNewFriendsActivity: true);
+            } else {
+              // It's the user's own new activity, refresh immediately to show it in My Activities
+              loadInitialData();
             }
           },
         )
