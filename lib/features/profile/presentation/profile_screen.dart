@@ -112,7 +112,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
                             ),
                             const SizedBox(height: 12),
                             Text(
-                              profile.username,
+                              profile.fullName,
                               style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
                             ),
                             if (profile.bio != null && profile.bio!.isNotEmpty) ...[

@@ -1,5 +1,7 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:turf/core/theme/app_theme.dart';
 
@@ -15,6 +17,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   bool _isLoading = false;
   String? _errorText;
   int _selectedAvatarIndex = 0;
+  File? _selectedImage;
+  final _imagePicker = ImagePicker();
 
   final List<Color> _avatarColors = [
     Colors.red, Colors.blue, Colors.green, Colors.orange,
@@ -25,6 +29,16 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   void dispose() {
     _usernameController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickImage() async {
+    final pickedFile = await _imagePicker.pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      setState(() {
+        _selectedImage = File(pickedFile.path);
+        _selectedAvatarIndex = -1;
+      });
+    }
   }
 
   Future<void> _checkUsernameAndSave() async {
@@ -59,11 +73,32 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
         return;
       }
 
+      String? avatarUrl;
+      String? avatarColor;
+
+      if (_selectedImage != null) {
+        final bytes = await _selectedImage!.readAsBytes();
+        final fileExt = _selectedImage!.path.split('.').last;
+        final fileName = '${session.user.id}-${DateTime.now().millisecondsSinceEpoch}.$fileExt';
+        
+        await Supabase.instance.client.storage.from('avatars').uploadBinary(
+          fileName,
+          bytes,
+        );
+        avatarUrl = Supabase.instance.client.storage.from('avatars').getPublicUrl(fileName);
+      } else if (_selectedAvatarIndex >= 0) {
+        avatarColor = _avatarColors[_selectedAvatarIndex].value.toRadixString(16);
+      } else {
+        // Fallback
+        avatarColor = _avatarColors[0].value.toRadixString(16);
+      }
+
       // Insert profile
       await Supabase.instance.client.from('profiles').insert({
         'id': session.user.id,
         'username': username,
-        'avatar_color': _avatarColors[_selectedAvatarIndex].value.toRadixString(16),
+        if (avatarColor != null) 'avatar_color': avatarColor,
+        if (avatarUrl != null) 'avatar_url': avatarUrl,
         'created_at': DateTime.now().toIso8601String(),
         'xp': 0,
       });
@@ -86,11 +121,31 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const Text(
-              'Choose an Avatar',
+              'Profile Image or Avatar',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 24),
+            Center(
+              child: GestureDetector(
+                onTap: _pickImage,
+                child: CircleAvatar(
+                  radius: 50,
+                  backgroundColor: const Color(0xFF141414),
+                  backgroundImage: _selectedImage != null ? FileImage(_selectedImage!) : null,
+                  child: _selectedImage == null
+                      ? const Icon(Icons.add_a_photo, size: 40, color: Colors.white)
+                      : null,
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'Or choose a color',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 14, color: Colors.grey),
+            ),
+            const SizedBox(height: 16),
             GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -103,7 +158,10 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
               itemBuilder: (context, index) {
                 final isSelected = _selectedAvatarIndex == index;
                 return GestureDetector(
-                  onTap: () => setState(() => _selectedAvatarIndex = index),
+                  onTap: () => setState(() {
+                    _selectedAvatarIndex = index;
+                    _selectedImage = null;
+                  }),
                   child: Container(
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,

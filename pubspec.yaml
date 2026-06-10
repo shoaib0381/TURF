@@ -58,6 +58,7 @@ dependencies:
   http: ^1.6.0
   timeago: ^3.7.1
   flutter_map_marker_cluster: ^8.2.2
+  image_picker: ^1.2.2
 
 dev_dependencies:
   flutter_test:
