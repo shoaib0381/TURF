@@ -99,3 +99,56 @@ Font display:      Space Grotesk (Google Fonts)
 - Tagline: **Claim your ground.**
 - Package ID: `com.turf.app`
 - Google OAuth redirect: `com.turf.app://login-callback`
+
+---
+
+## Feature Extensions (Clubs & Groups)
+The following tables and policies support the Clubs system:
+```sql
+-- Clubs table
+create table if not exists public.clubs (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  description text,
+  avatar_url text,
+  cover_url text,
+  created_by uuid references public.profiles(id),
+  is_public boolean default true,
+  invite_code text unique default substring(gen_random_uuid()::text, 1, 8),
+  member_count int4 default 1,
+  total_distance_km float8 default 0,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+-- Club members
+create table if not exists public.club_members (
+  id uuid primary key default gen_random_uuid(),
+  club_id uuid references public.clubs(id) on delete cascade,
+  user_id uuid references public.profiles(id) on delete cascade,
+  role text check (role in ('owner','admin','member')) default 'member',
+  weekly_distance_km float8 default 0,
+  total_distance_km float8 default 0,
+  joined_at timestamptz default now(),
+  unique(club_id, user_id)
+);
+
+-- Club join requests (for private clubs)
+create table if not exists public.club_requests (
+  id uuid primary key default gen_random_uuid(),
+  club_id uuid references public.clubs(id) on delete cascade,
+  user_id uuid references public.profiles(id) on delete cascade,
+  status text check (status in ('pending','accepted','declined')) default 'pending',
+  created_at timestamptz default now(),
+  unique(club_id, user_id)
+);
+
+-- Club activity feed (mirror of activity_sessions visible to club)
+create table if not exists public.club_activities (
+  id uuid primary key default gen_random_uuid(),
+  club_id uuid references public.clubs(id) on delete cascade,
+  session_id uuid references public.activity_sessions(id) on delete cascade,
+  user_id uuid references public.profiles(id),
+  posted_at timestamptz default now()
+);
+```

@@ -34,6 +34,18 @@ class SocialRepository {
     return (response as List).map((e) => Friendship.fromJson(e)).toList();
   }
 
+  /// Get outgoing friend requests (where current user is user_id_1)
+  Future<List<Friendship>> getOutgoingRequests() async {
+    final response = await _supabase
+        .from('friendships')
+        .select('*, profile1:profiles!friendships_user_id_1_fkey(*), profile2:profiles!friendships_user_id_2_fkey(*)')
+        .eq('user_id_1', _currentUserId)
+        .eq('status', 'pending')
+        .order('created_at', ascending: false);
+
+    return (response as List).map((e) => Friendship.fromJson(e)).toList();
+  }
+
   /// Search users by username
   Future<List<Profile>> searchUsers(String query) async {
     if (query.trim().isEmpty) return [];
@@ -97,5 +109,63 @@ class SocialRepository {
           .delete()
           .eq('id', friendshipId);
     }
+  }
+
+  /// Delete friendship (Unfriend)
+  Future<void> deleteFriendship(String userId) async {
+    await _supabase
+        .from('friendships')
+        .delete()
+        .or('and(user_id_1.eq.$_currentUserId,user_id_2.eq.$userId),and(user_id_1.eq.$userId,user_id_2.eq.$_currentUserId)');
+  }
+
+  /// Get Discover Users (Users who are not friends and no pending requests, ordered by total_xp proximity)
+  Future<List<Profile>> getDiscoverUsers() async {
+    // 1. Get current user profile for total_xp
+    final myProfile = await getProfile(_currentUserId);
+    final myXp = myProfile.totalXp;
+
+    // 2. Get all friend/request IDs
+    final friendships = await _supabase
+        .from('friendships')
+        .select('user_id_1, user_id_2')
+        .or('user_id_1.eq.$_currentUserId,user_id_2.eq.$_currentUserId');
+    
+    final excludeIds = <String>{_currentUserId};
+    for (var f in friendships as List) {
+      excludeIds.add(f['user_id_1'] == _currentUserId ? f['user_id_2'] : f['user_id_1']);
+    }
+
+    // 3. Query profiles excluding those IDs, order by total_xp proximity (using a simple order by total_xp desc for now, or fetch and sort client side)
+    // For simplicity, fetch top 50 active users not in excludeIds, then sort in memory by XP proximity
+    final response = await _supabase
+        .from('profiles')
+        .select()
+        .not('id', 'in', '(${excludeIds.join(",")})')
+        .limit(50);
+        
+    final profiles = (response as List).map((e) => Profile.fromJson(e)).toList();
+    
+    // Sort by proximity to myXp
+    profiles.sort((a, b) => (a.totalXp - myXp).abs().compareTo((b.totalXp - myXp).abs()));
+    
+    return profiles;
+  }
+
+  /// Check friendship status with a specific user
+  Future<String> checkFriendshipStatus(String userId) async {
+    if (userId == _currentUserId) return 'you';
+    
+    final response = await _supabase
+        .from('friendships')
+        .select('status, user_id_1')
+        .or('and(user_id_1.eq.$_currentUserId,user_id_2.eq.$userId),and(user_id_1.eq.$userId,user_id_2.eq.$_currentUserId)')
+        .maybeSingle();
+        
+    if (response == null) return 'none';
+    
+    final status = response['status'] as String;
+    // If pending, check if we sent it or received it (if needed), but UI just needs 'pending' or 'accepted'
+    return status;
   }
 }

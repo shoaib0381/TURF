@@ -892,6 +892,10 @@ final user = supabase.auth.currentUser;
 | user_badges | Badges earned by users |
 | fitness_goals | Personal fitness goals |
 | notifications | In-app notifications |
+| clubs | Club definitions & invite codes |
+| club_members | Members of clubs & their roles |
+| club_requests | Pending join requests for clubs |
+| club_activities | Activity feed mirrored for clubs |
 
 ---
 

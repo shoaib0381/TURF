@@ -178,17 +178,70 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
                   ),
                 ),
                 SliverToBoxAdapter(
-                  child: Container(
-                    color: Colors.black,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        _StatItem(label: 'Total km', value: profile.totalDistanceKm.toStringAsFixed(1)),
-                        _StatItem(label: 'Total XP', value: profile.totalXp.toString()),
-                        _StatItem(label: 'Streak', value: '${profile.streakDays}d'),
-                      ],
-                    ),
+                  child: Column(
+                    children: [
+                      Container(
+                        color: Colors.black,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            _StatItem(label: 'Total km', value: profile.totalDistanceKm.toStringAsFixed(1)),
+                            _StatItem(label: 'Total XP', value: profile.totalXp.toString()),
+                            _StatItem(label: 'Streak', value: '${profile.streakDays}d'),
+                          ],
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () => context.push('/clubs'),
+                                child: Container(
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF1C1C1E),
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  child: const Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.shield_outlined, color: Color(0xFF00E676), size: 20),
+                                      SizedBox(width: 8),
+                                      Text('My Clubs', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () => context.push('/friends'),
+                                child: Container(
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF1C1C1E),
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  child: const Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.people_outline, color: Color(0xFF00E676), size: 20),
+                                      SizedBox(width: 8),
+                                      Text('Friends', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
                   ),
                 ),
                 SliverPersistentHeader(

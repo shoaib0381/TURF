@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -23,7 +22,7 @@ class _FriendsScreenState extends ConsumerState<FriendsScreen> with SingleTicker
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
   }
 
   @override
@@ -39,15 +38,23 @@ class _FriendsScreenState extends ConsumerState<FriendsScreen> with SingleTicker
       appBar: AppBar(
         backgroundColor: Colors.black,
         title: const Text('Social', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.search, color: Colors.white54),
+            onPressed: () => context.push('/friends/search'), // Assuming route setup
+          ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           indicatorColor: const Color(0xFF00E676),
           labelColor: const Color(0xFF00E676),
           unselectedLabelColor: Colors.white54,
+          isScrollable: true,
           tabs: const [
             Tab(text: 'Friends'),
             Tab(text: 'Requests'),
-            Tab(text: 'Find People'),
+            Tab(text: 'Discover'),
+            Tab(text: 'Clubs'),
           ],
         ),
       ),
@@ -56,7 +63,8 @@ class _FriendsScreenState extends ConsumerState<FriendsScreen> with SingleTicker
         children: [
           _FriendsListTab(),
           _RequestsTab(),
-          _FindPeopleTab(),
+          _DiscoverTab(),
+          _ClubsTab(),
         ],
       ),
     );
@@ -77,7 +85,7 @@ class _FriendsListTab extends ConsumerWidget {
           return const EmptyState(
             icon: Icons.people_outline,
             title: 'No friends yet',
-            subtitle: 'Find your tribe in the Find People tab.',
+            subtitle: 'Find your tribe in the Discover tab.',
           );
         }
 
@@ -90,7 +98,6 @@ class _FriendsListTab extends ConsumerWidget {
             itemCount: friendships.length,
             itemBuilder: (context, index) {
               final friendship = friendships[index];
-              // Determine which profile is the friend (not the current user)
               final isUser1 = friendship.userId1 == currentUserId;
               final friendProfile = isUser1 ? friendship.profile2 : friendship.profile1;
 
@@ -118,6 +125,30 @@ class _FriendsListTab extends ConsumerWidget {
                   child: Text('Lvl ${friendProfile.level}', style: const TextStyle(color: Color(0xFF00E676), fontWeight: FontWeight.bold, fontSize: 12)),
                 ),
                 onTap: () => context.push('/profile/${friendProfile.id}', extra: friendProfile),
+                onLongPress: () {
+                  showDialog(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      backgroundColor: const Color(0xFF1C1C1E),
+                      title: const Text('Unfriend?', style: TextStyle(color: Colors.white)),
+                      content: Text('Remove ${friendProfile.username} from your friends list?', style: const TextStyle(color: Colors.white54)),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+                        ),
+                        TextButton(
+                          onPressed: () async {
+                            Navigator.pop(context);
+                            await ref.read(socialRepositoryProvider).deleteFriendship(friendProfile.id);
+                            ref.invalidate(friendsProvider);
+                          },
+                          child: const Text('Unfriend', style: TextStyle(color: Color(0xFFFF453A))),
+                        ),
+                      ],
+                    ),
+                  );
+                },
               );
             },
           ),
@@ -130,65 +161,171 @@ class _FriendsListTab extends ConsumerWidget {
 class _RequestsTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final requestsAsync = ref.watch(pendingRequestsProvider);
+    final incomingAsync = ref.watch(pendingRequestsProvider);
+    final outgoingAsync = ref.watch(outgoingRequestsProvider);
 
-    return requestsAsync.when(
+    return RefreshIndicator(
+      color: const Color(0xFF00E676),
+      backgroundColor: const Color(0xFF1C1C1E),
+      onRefresh: () async {
+        ref.invalidate(pendingRequestsProvider);
+        ref.invalidate(outgoingRequestsProvider);
+      },
+      child: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          const Text('Incoming Requests', style: TextStyle(color: Colors.white54, fontWeight: FontWeight.bold, fontSize: 12)),
+          const SizedBox(height: 8),
+          incomingAsync.when(
+            loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFF00E676))),
+            error: (e, _) => const Text('Error loading', style: TextStyle(color: Colors.red)),
+            data: (requests) {
+              if (requests.isEmpty) {
+                return const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 24),
+                  child: Center(child: Text('No incoming requests.', style: TextStyle(color: Colors.white54))),
+                );
+              }
+              return Column(
+                children: requests.map((request) {
+                  final senderProfile = request.profile1;
+                  if (senderProfile == null) return const SizedBox.shrink();
+
+                  return ListTile(
+                    contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                    leading: CircleAvatar(
+                      radius: 24,
+                      backgroundColor: const Color(0xFF1C1C1E),
+                      backgroundImage: senderProfile.avatarUrl != null ? CachedNetworkImageProvider(senderProfile.avatarUrl!) : null,
+                      child: senderProfile.avatarUrl == null ? const Icon(Icons.person, color: Colors.white54) : null,
+                    ),
+                    title: Text(senderProfile.fullName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    subtitle: const Text('Sent you a friend request', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.close, color: Color(0xFFFF453A)),
+                          onPressed: () async {
+                            await ref.read(socialRepositoryProvider).respondToRequest(request.id, false);
+                            ref.invalidate(pendingRequestsProvider);
+                          },
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.check, color: Color(0xFF00E676)),
+                          onPressed: () async {
+                            await ref.read(socialRepositoryProvider).respondToRequest(request.id, true);
+                            ref.invalidate(pendingRequestsProvider);
+                            ref.invalidate(friendsProvider);
+                          },
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              );
+            },
+          ),
+          
+          const SizedBox(height: 32),
+          
+          const Text('Outgoing Requests', style: TextStyle(color: Colors.white54, fontWeight: FontWeight.bold, fontSize: 12)),
+          const SizedBox(height: 8),
+          outgoingAsync.when(
+            loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFF00E676))),
+            error: (e, _) => const Text('Error loading', style: TextStyle(color: Colors.red)),
+            data: (requests) {
+              if (requests.isEmpty) {
+                return const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 24),
+                  child: Center(child: Text('No outgoing requests.', style: TextStyle(color: Colors.white54))),
+                );
+              }
+              return Column(
+                children: requests.map((request) {
+                  final targetProfile = request.profile2;
+                  if (targetProfile == null) return const SizedBox.shrink();
+
+                  return ListTile(
+                    contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                    leading: CircleAvatar(
+                      radius: 24,
+                      backgroundColor: const Color(0xFF1C1C1E),
+                      backgroundImage: targetProfile.avatarUrl != null ? CachedNetworkImageProvider(targetProfile.avatarUrl!) : null,
+                      child: targetProfile.avatarUrl == null ? const Icon(Icons.person, color: Colors.white54) : null,
+                    ),
+                    title: Text(targetProfile.fullName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    trailing: TextButton(
+                      onPressed: () async {
+                        // Cancel request means deleting it
+                        await ref.read(socialRepositoryProvider).respondToRequest(request.id, false);
+                        ref.invalidate(outgoingRequestsProvider);
+                      },
+                      child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+                    ),
+                  );
+                }).toList(),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DiscoverTab extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final discoverAsync = ref.watch(discoverUsersProvider);
+
+    return discoverAsync.when(
       loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFF00E676))),
-      error: (e, _) => Center(child: Text('Error loading requests', style: const TextStyle(color: Colors.red))),
-      data: (requests) {
-        if (requests.isEmpty) {
-          return const EmptyState(
-            icon: Icons.mail_outline,
-            title: 'No pending requests',
-            subtitle: 'You are all caught up!',
-          );
+      error: (e, _) => const Center(child: Text('Error loading discover list', style: TextStyle(color: Colors.red))),
+      data: (users) {
+        if (users.isEmpty) {
+          return const Center(child: Text('No users to discover right now.', style: TextStyle(color: Colors.white54)));
         }
 
         return RefreshIndicator(
           color: const Color(0xFF00E676),
           backgroundColor: const Color(0xFF1C1C1E),
-          onRefresh: () => ref.refresh(pendingRequestsProvider.future),
+          onRefresh: () => ref.refresh(discoverUsersProvider.future),
           child: ListView.builder(
             padding: const EdgeInsets.all(16),
-            itemCount: requests.length,
+            itemCount: users.length,
             itemBuilder: (context, index) {
-              final request = requests[index];
-              // Sender is user_id_1
-              final senderProfile = request.profile1;
-
-              if (senderProfile == null) return const SizedBox.shrink();
-
+              final user = users[index];
               return ListTile(
                 contentPadding: const EdgeInsets.symmetric(vertical: 8),
                 leading: CircleAvatar(
                   radius: 24,
                   backgroundColor: const Color(0xFF1C1C1E),
-                  backgroundImage: senderProfile.avatarUrl != null ? CachedNetworkImageProvider(senderProfile.avatarUrl!) : null,
-                  child: senderProfile.avatarUrl == null ? const Icon(Icons.person, color: Colors.white54) : null,
+                  backgroundImage: user.avatarUrl != null ? CachedNetworkImageProvider(user.avatarUrl!) : null,
+                  child: user.avatarUrl == null ? const Icon(Icons.person, color: Colors.white54) : null,
                 ),
-                title: Text(senderProfile.fullName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                subtitle: const Text('Sent you a friend request', style: TextStyle(color: Colors.white54, fontSize: 12)),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.close, color: Color(0xFFFF453A)),
-                      onPressed: () async {
-                        await ref.read(socialRepositoryProvider).respondToRequest(request.id, false);
-                        ref.invalidate(pendingRequestsProvider);
-                      },
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.check, color: Color(0xFF00E676)),
-                      onPressed: () async {
-                        await ref.read(socialRepositoryProvider).respondToRequest(request.id, true);
-                        ref.invalidate(pendingRequestsProvider);
-                        ref.invalidate(friendsProvider);
-                      },
-                    ),
-                  ],
+                title: Text(user.fullName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                subtitle: Text('LVL ${user.level} • ${user.totalDistanceKm.toStringAsFixed(1)} km', style: const TextStyle(color: Colors.white54, fontSize: 12)),
+                trailing: ElevatedButton(
+                  onPressed: () async {
+                    try {
+                      await ref.read(socialRepositoryProvider).sendRequestSimple(user.id);
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Request sent!'), backgroundColor: Color(0xFF00E676)));
+                      ref.invalidate(discoverUsersProvider);
+                      ref.invalidate(outgoingRequestsProvider);
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to send request'), backgroundColor: Color(0xFFFF453A)));
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF00E676).withOpacity(0.2),
+                    foregroundColor: const Color(0xFF00E676),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                  child: const Text('Add Friend'),
                 ),
-                onTap: () => context.push('/profile/${senderProfile.id}', extra: senderProfile),
+                onTap: () => context.push('/profile/${user.id}', extra: user),
               );
             },
           ),
@@ -198,127 +335,52 @@ class _RequestsTab extends ConsumerWidget {
   }
 }
 
-class _FindPeopleTab extends ConsumerStatefulWidget {
+class _ClubsTab extends ConsumerWidget {
   @override
-  ConsumerState<_FindPeopleTab> createState() => _FindPeopleTabState();
-}
-
-class _FindPeopleTabState extends ConsumerState<_FindPeopleTab> {
-  final TextEditingController _searchController = TextEditingController();
-  Timer? _debounce;
-  List<Profile> _searchResults = [];
-  bool _isSearching = false;
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    _debounce?.cancel();
-    super.dispose();
-  }
-
-  void _onSearchChanged(String query) {
-    _debounce?.cancel();
-    if (query.trim().isEmpty) {
-      setState(() {
-        _searchResults = [];
-        _isSearching = false;
-      });
-      return;
-    }
-
-    _debounce = Timer(const Duration(milliseconds: 500), () async {
-      setState(() => _isSearching = true);
-      try {
-        final results = await ref.read(socialRepositoryProvider).searchUsers(query);
-        if (mounted) {
-          setState(() {
-            _searchResults = results;
-            _isSearching = false;
-          });
-        }
-      } catch (e) {
-        if (mounted) setState(() => _isSearching = false);
-      }
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Container(
-            height: 48,
-            decoration: BoxDecoration(
-              color: const Color(0xFF1C1C1E),
-              borderRadius: BorderRadius.circular(12),
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1C1C1E),
+                shape: BoxShape.circle,
+                border: Border.all(color: const Color(0xFF00E676).withOpacity(0.3), width: 2),
+              ),
+              child: const Icon(Icons.shield_outlined, size: 64, color: Color(0xFF00E676)),
             ),
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              children: [
-                const Icon(Icons.search, color: Colors.white54),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: TextField(
-                    controller: _searchController,
-                    onChanged: _onSearchChanged,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: const InputDecoration(
-                      hintText: 'Search by username...',
-                      hintStyle: TextStyle(color: Colors.white54),
-                      border: InputBorder.none,
-                      isDense: true,
-                    ),
-                  ),
-                ),
-                if (_isSearching)
-                  const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF00E676))),
-              ],
+            const SizedBox(height: 24),
+            const Text(
+              'Join the Club',
+              style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
             ),
-          ),
-        ),
-        Expanded(
-          child: _searchResults.isEmpty
-              ? const Center(child: Text('Search for users to add them.', style: TextStyle(color: Colors.white54)))
-              : ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: _searchResults.length,
-                  itemBuilder: (context, index) {
-                    final user = _searchResults[index];
-                    return ListTile(
-                      contentPadding: const EdgeInsets.symmetric(vertical: 8),
-                      leading: CircleAvatar(
-                        radius: 24,
-                        backgroundColor: const Color(0xFF1C1C1E),
-                        backgroundImage: user.avatarUrl != null ? CachedNetworkImageProvider(user.avatarUrl!) : null,
-                        child: user.avatarUrl == null ? const Icon(Icons.person, color: Colors.white54) : null,
-                      ),
-                      title: Text(user.fullName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                      subtitle: Text('@${user.username}', style: const TextStyle(color: Colors.white54, fontSize: 12)),
-                      trailing: ElevatedButton(
-                        onPressed: () async {
-                          try {
-                            await ref.read(socialRepositoryProvider).sendRequestSimple(user.id);
-                            if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Request sent!'), backgroundColor: Color(0xFF00E676)));
-                          } catch (e) {
-                            if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to send request'), backgroundColor: Color(0xFFFF453A)));
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF00E676).withOpacity(0.2),
-                          foregroundColor: const Color(0xFF00E676),
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                        ),
-                        child: const Text('Add'),
-                      ),
-                      onTap: () => context.push('/profile/${user.id}', extra: user),
-                    );
-                  },
+            const SizedBox(height: 12),
+            const Text(
+              'Run together. Capture together. Dominate the leaderboards as a team.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.white54, fontSize: 16),
+            ),
+            const SizedBox(height: 32),
+            SizedBox(
+              width: double.infinity,
+              height: 56,
+              child: ElevatedButton(
+                onPressed: () => context.push('/clubs'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF00E676),
+                  foregroundColor: Colors.black,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
                 ),
+                child: const Text('Explore Clubs', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }

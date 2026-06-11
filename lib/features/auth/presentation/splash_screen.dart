@@ -432,33 +432,47 @@ class _Tagline extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
+    return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        // Left line
-        Container(width: 30, height: 1, color: Colors.white24),
-        const SizedBox(width: 10),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Left line
+            Container(width: 30, height: 1, color: Colors.white24),
+            const SizedBox(width: 10),
+            const Text(
+              'POWERED BY ',
+              style: TextStyle(
+                color: Colors.white60,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 2.5,
+              ),
+            ),
+            const Text(
+              'JTC SOLUTIONS.',
+              style: TextStyle(
+                color: Colors.white, // Changed from green to avoid blending into green background
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 2.5,
+              ),
+            ),
+            const SizedBox(width: 10),
+            // Right line
+            Container(width: 30, height: 1, color: Colors.white24),
+          ],
+        ),
+        const SizedBox(height: 8),
         const Text(
-          'POWERED BY ',
+          'v1.0.0',
           style: TextStyle(
-            color: Colors.white60,
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 2.5,
+            color: Colors.white54,
+            fontSize: 11,
+            letterSpacing: 1.5,
           ),
         ),
-        const Text(
-          'JTC SOLUTIONS.',
-          style: TextStyle(
-            color: Color(0xFF00FF41),
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 2.5,
-          ),
-        ),
-        const SizedBox(width: 10),
-        // Right line
-        Container(width: 30, height: 1, color: Colors.white24),
       ],
     );
   }

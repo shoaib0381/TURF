@@ -15,11 +15,16 @@ import 'package:turf/features/leaderboard/presentation/leaderboard_screen.dart';
 import 'package:turf/features/profile/presentation/profile_screen.dart';
 import 'package:turf/features/profile/presentation/public_profile_screen.dart';
 import 'package:turf/features/profile/presentation/settings_screen.dart';
+import 'package:turf/features/profile/presentation/edit_profile_screen.dart';
 import 'package:turf/features/challenges/domain/models/challenge.dart';
 import 'package:turf/features/challenges/presentation/challenge_detail_screen.dart';
 import 'package:turf/features/challenges/presentation/challenges_screen.dart';
 import 'package:turf/features/challenges/presentation/create_challenge_screen.dart';
 import 'package:turf/features/friends/presentation/friends_screen.dart';
+import 'package:turf/features/clubs/domain/models/club.dart';
+import 'package:turf/features/clubs/presentation/clubs_list_screen.dart';
+import 'package:turf/features/clubs/presentation/club_detail_screen.dart';
+import 'package:turf/features/clubs/presentation/create_club_screen.dart';
 import 'package:turf/features/goals/presentation/goals_screen.dart';
 import 'package:turf/features/goals/presentation/create_goal_screen.dart';
 import 'package:turf/features/search/presentation/search_screen.dart';
@@ -114,6 +119,24 @@ final appRouter = GoRouter(
       builder: (context, state) => const FriendsScreen(),
     ),
     GoRoute(
+      path: '/clubs',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const ClubsListScreen(),
+    ),
+    GoRoute(
+      path: '/clubs/create',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const CreateClubScreen(),
+    ),
+    GoRoute(
+      path: '/clubs/:clubId',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) {
+        final club = state.extra as Club;
+        return ClubDetailScreen(club: club);
+      },
+    ),
+    GoRoute(
       path: '/goals',
       parentNavigatorKey: _rootNavigatorKey,
       builder: (context, state) => const GoalsScreen(),
@@ -136,7 +159,13 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/settings',
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => const SettingsScreen(),),
+      builder: (context, state) => const SettingsScreen(),
+    ),
+    GoRoute(
+      path: '/settings/edit-profile',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const EditProfileScreen(),
+    ),
     GoRoute(
       path: '/activity/countdown',
       parentNavigatorKey: _rootNavigatorKey,

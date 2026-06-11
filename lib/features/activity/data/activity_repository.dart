@@ -24,7 +24,8 @@ class ActivityRepository {
   Future<void> saveActivitySession(ActivitySession session) async {
     try {
       // 1. Insert session
-      await _supabase.from('activity_sessions').insert(session.toJson());
+      final sessionResponse = await _supabase.from('activity_sessions').insert(session.toJson()).select('id').single();
+      final sessionId = sessionResponse['id'] as String;
 
       // 2. Award XP
       if (session.xpEarned > 0) {
@@ -112,6 +113,26 @@ class ActivityRepository {
         }
       } catch (e) {
         print('Error updating fitness goals progress: $e');
+      }
+
+      // 5. Post to Club Activities
+      try {
+        final memberships = await _supabase
+            .from('club_members')
+            .select('club_id')
+            .eq('user_id', session.userId);
+
+        final clubActivities = (memberships as List).map((m) => {
+          'club_id': m['club_id'],
+          'session_id': sessionId,
+          'user_id': session.userId,
+        }).toList();
+
+        if (clubActivities.isNotEmpty) {
+          await _supabase.from('club_activities').insert(clubActivities);
+        }
+      } catch (e) {
+        print('Error posting to club activities: $e');
       }
     } catch (e) {
       print('Error saving activity session: $e');

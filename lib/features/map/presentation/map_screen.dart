@@ -10,8 +10,6 @@ import 'package:confetti/confetti.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import 'package:cached_network_image/cached_network_image.dart';
-
 import 'package:turf/core/services/geocoding_service.dart';
 import 'package:turf/features/map/domain/models/territory.dart';
 import 'package:turf/features/map/presentation/providers/location_provider.dart';
@@ -20,7 +18,7 @@ import 'package:turf/features/map/presentation/widgets/floating_bottom_stats.dar
 import 'package:turf/features/map/presentation/widgets/floating_top_bar.dart';
 import 'package:turf/features/map/presentation/widgets/pulsing_marker.dart';
 import 'package:turf/features/map/presentation/widgets/territory_info_sheet.dart';
-import 'package:turf/features/profile/presentation/providers/profile_provider.dart';
+import 'package:turf/features/map/presentation/widgets/user_location_marker.dart';
 
 class MapScreen extends ConsumerStatefulWidget {
   const MapScreen({super.key});
@@ -39,10 +37,37 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   String? _searchMarkerLabel;
   Timer? _searchMarkerTimer;
 
+  // Local profile data fetched once
+  String? _avatarUrl;
+  String? _username;
+
   @override
   void initState() {
     super.initState();
     _confettiController = ConfettiController(duration: const Duration(seconds: 3));
+    _fetchProfileData();
+  }
+
+  Future<void> _fetchProfileData() async {
+    try {
+      final userId = Supabase.instance.client.auth.currentUser?.id;
+      if (userId == null) return;
+      
+      final data = await Supabase.instance.client
+          .from('profiles')
+          .select('avatar_url, username')
+          .eq('id', userId)
+          .maybeSingle();
+          
+      if (data != null && mounted) {
+        setState(() {
+          _avatarUrl = data['avatar_url'];
+          _username = data['username'];
+        });
+      }
+    } catch (_) {
+      // Silently fail
+    }
   }
 
   @override
@@ -170,7 +195,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   Widget build(BuildContext context) {
     final locationAsync = ref.watch(locationProvider);
     final territoriesAsync = ref.watch(territoriesProvider);
-    final profileAsync = ref.watch(profileProvider);
 
     Position? currentPos;
     locationAsync.whenData((pos) {
@@ -268,39 +292,33 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                 ),
               ),
 
-              // User Location
+              // User Location Accuracy Circle
+              if (currentPos != null && currentPos!.accuracy > 0)
+                CircleLayer(
+                  circles: [
+                    CircleMarker(
+                      point: LatLng(currentPos!.latitude, currentPos!.longitude),
+                      radius: currentPos!.accuracy,
+                      useRadiusInMeter: true,
+                      color: const Color(0xFF00E676).withOpacity(0.1),
+                      borderColor: const Color(0xFF00E676),
+                      borderStrokeWidth: 1,
+                    ),
+                  ],
+                ),
+
+              // User Location Marker
               if (currentPos != null)
                 MarkerLayer(
                   markers: [
                     Marker(
                       point: LatLng(currentPos!.latitude, currentPos!.longitude),
-                      width: 48,
-                      height: 48,
-                      child: profileAsync.when(
-                        data: (profile) {
-                          if (profile?.avatarUrl != null) {
-                            return Container(
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(color: const Color(0xFF00E676), width: 3),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: const Color(0xFF00E676).withOpacity(0.5),
-                                    blurRadius: 12,
-                                    spreadRadius: 2,
-                                  ),
-                                ],
-                                image: DecorationImage(
-                                  image: CachedNetworkImageProvider(profile!.avatarUrl!),
-                                  fit: BoxFit.cover,
-                                ),
-                              ),
-                            );
-                          }
-                          return const PulsingMarker(color: Color(0xFF00E676), size: 16);
-                        },
-                        loading: () => const PulsingMarker(color: Color(0xFF00E676), size: 16),
-                        error: (_, __) => const PulsingMarker(color: Color(0xFF00E676), size: 16),
+                      width: 44,
+                      height: 52,
+                      alignment: Alignment.topCenter, // Align pin tip to coordinates
+                      child: UserLocationMarker(
+                        avatarUrl: _avatarUrl,
+                        username: _username,
                       ),
                     ),
                   ],

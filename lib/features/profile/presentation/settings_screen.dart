@@ -67,7 +67,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 title: const Text('Edit Profile'),
                 subtitle: const Text('Name, Bio, Avatar'),
                 trailing: const Icon(Icons.chevron_right),
-                onTap: () {},
+                onTap: () => context.push('/settings/edit-profile'),
               ),
               ListTile(
                 title: const Text('Change Password'),
